@@ -1,0 +1,75 @@
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+bin/
+obj/
+[Bb]uild/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.nuget.props
+*.nuget.targets
+
+# ASP.NET / Web
+wwwroot/dist/
+wwwroot/build/
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Logs
+*.log
+logs/
+
+# Coverage / Reports
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+BenchmarkDotNet.Artifacts/
+
+# Docker
+docker-compose.override.yml
+.env
+*.pid
+
+# PostgreSQL / Database
+*.db
+*.sql
+pgdata/
+
+# MinIO / Storage
+minio/
+storage/
+uploads/
+files/
+
+# ElasticSearch
+elasticsearch/data/
+elasticsearch/logs/
+
+# RabbitMQ
+rabbitmq/
+
+# GenAI / API Keys
+*.key
+*.secret
+*.pem
+*.crt
+*.env.local
