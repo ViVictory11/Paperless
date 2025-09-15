@@ -1,0 +1,153 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{FE47875A-5166-4FD3-A1DE-05A6CF7437F2}|Paperless.DAL.Service\\Paperless.DAL.Service.csproj|c:\\users\\wikto\\semester5\\swen3\\paperless\\paperless.dal.service\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FE47875A-5166-4FD3-A1DE-05A6CF7437F2}|Paperless.DAL.Service\\Paperless.DAL.Service.csproj|solutionrelative:paperless.dal.service\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FE47875A-5166-4FD3-A1DE-05A6CF7437F2}|Paperless.DAL.Service\\Paperless.DAL.Service.csproj|c:\\users\\wikto\\semester5\\swen3\\paperless\\paperless.dal.service\\controllers\\documentscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FE47875A-5166-4FD3-A1DE-05A6CF7437F2}|Paperless.DAL.Service\\Paperless.DAL.Service.csproj|solutionrelative:paperless.dal.service\\controllers\\documentscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FE47875A-5166-4FD3-A1DE-05A6CF7437F2}|Paperless.DAL.Service\\Paperless.DAL.Service.csproj|c:\\users\\wikto\\semester5\\swen3\\paperless\\paperless.dal.service\\repositories\\documentrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FE47875A-5166-4FD3-A1DE-05A6CF7437F2}|Paperless.DAL.Service\\Paperless.DAL.Service.csproj|solutionrelative:paperless.dal.service\\repositories\\documentrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FE47875A-5166-4FD3-A1DE-05A6CF7437F2}|Paperless.DAL.Service\\Paperless.DAL.Service.csproj|c:\\users\\wikto\\semester5\\swen3\\paperless\\paperless.dal.service\\repositories\\idocumentrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FE47875A-5166-4FD3-A1DE-05A6CF7437F2}|Paperless.DAL.Service\\Paperless.DAL.Service.csproj|solutionrelative:paperless.dal.service\\repositories\\idocumentrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FE47875A-5166-4FD3-A1DE-05A6CF7437F2}|Paperless.DAL.Service\\Paperless.DAL.Service.csproj|c:\\users\\wikto\\semester5\\swen3\\paperless\\paperless.dal.service\\profiles\\documentprofile.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FE47875A-5166-4FD3-A1DE-05A6CF7437F2}|Paperless.DAL.Service\\Paperless.DAL.Service.csproj|solutionrelative:paperless.dal.service\\profiles\\documentprofile.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}|Solution Items{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}|C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\docker-compose.yml||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}|Solution Items{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}|solutionrelative:docker-compose.yml||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{AA0CA046-0B90-4756-AD82-AFB51E708068}|Paperless.Contracts\\Paperless.Contracts.csproj|c:\\users\\wikto\\semester5\\swen3\\paperless\\paperless.contracts\\documentdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{AA0CA046-0B90-4756-AD82-AFB51E708068}|Paperless.Contracts\\Paperless.Contracts.csproj|solutionrelative:paperless.contracts\\documentdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.DAL.Service\\Program.cs",
+              "RelativeDocumentMoniker": "Paperless.DAL.Service\\Program.cs",
+              "ToolTip": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.DAL.Service\\Program.cs*",
+              "RelativeToolTip": "Paperless.DAL.Service\\Program.cs*",
+              "ViewState": "AgIAACYAAAAAAAAAAAAAABQAAAA4AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-15T06:10:36.686Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "DocumentRepository.cs",
+              "DocumentMoniker": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.DAL.Service\\Repositories\\DocumentRepository.cs",
+              "RelativeDocumentMoniker": "Paperless.DAL.Service\\Repositories\\DocumentRepository.cs",
+              "ToolTip": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.DAL.Service\\Repositories\\DocumentRepository.cs*",
+              "RelativeToolTip": "Paperless.DAL.Service\\Repositories\\DocumentRepository.cs*",
+              "ViewState": "AgIAAA4AAAAAAAAAAAAgwCAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-13T20:08:55.371Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "DocumentsController.cs",
+              "DocumentMoniker": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.DAL.Service\\Controllers\\DocumentsController.cs",
+              "RelativeDocumentMoniker": "Paperless.DAL.Service\\Controllers\\DocumentsController.cs",
+              "ToolTip": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.DAL.Service\\Controllers\\DocumentsController.cs*",
+              "RelativeToolTip": "Paperless.DAL.Service\\Controllers\\DocumentsController.cs*",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-13T20:09:17.516Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "IDocumentRepository.cs",
+              "DocumentMoniker": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.DAL.Service\\Repositories\\IDocumentRepository.cs",
+              "RelativeDocumentMoniker": "Paperless.DAL.Service\\Repositories\\IDocumentRepository.cs",
+              "ToolTip": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.DAL.Service\\Repositories\\IDocumentRepository.cs*",
+              "RelativeToolTip": "Paperless.DAL.Service\\Repositories\\IDocumentRepository.cs*",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-13T20:08:24.833Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "DocumentProfile.cs",
+              "DocumentMoniker": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.DAL.Service\\Profiles\\DocumentProfile.cs",
+              "RelativeDocumentMoniker": "Paperless.DAL.Service\\Profiles\\DocumentProfile.cs",
+              "ToolTip": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.DAL.Service\\Profiles\\DocumentProfile.cs",
+              "RelativeToolTip": "Paperless.DAL.Service\\Profiles\\DocumentProfile.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-13T20:05:28.773Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "docker-compose.yml",
+              "DocumentMoniker": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\docker-compose.yml",
+              "RelativeDocumentMoniker": "docker-compose.yml",
+              "ToolTip": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\docker-compose.yml",
+              "RelativeToolTip": "docker-compose.yml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003775|",
+              "WhenOpened": "2025-09-13T19:50:51.941Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "DocumentDto.cs",
+              "DocumentMoniker": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.Contracts\\DocumentDto.cs",
+              "RelativeDocumentMoniker": "Paperless.Contracts\\DocumentDto.cs",
+              "ToolTip": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.Contracts\\DocumentDto.cs",
+              "RelativeToolTip": "Paperless.Contracts\\DocumentDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-13T19:46:11.835Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:1:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            }
+          ]
+        },
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
