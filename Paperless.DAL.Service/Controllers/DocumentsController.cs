@@ -20,7 +20,6 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<DocumentDto>))]
     public async Task<ActionResult<IEnumerable<DocumentDto>>> GetAll(CancellationToken ct)
     {
         var entities = await _repo.GetAllAsync(ct);
@@ -28,8 +27,6 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(DocumentDto))]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DocumentDto>> GetById(Guid id, CancellationToken ct)
     {
         var entity = await _repo.GetAsync(id, ct);
@@ -38,8 +35,6 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(DocumentDto))]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DocumentDto>> Create([FromBody] CreateDocumentDto dto, CancellationToken ct)
     {
         var entity = _mapper.Map<DocumentEntity>(dto);
@@ -53,8 +48,6 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var removed = await _repo.DeleteAsync(id, ct);
