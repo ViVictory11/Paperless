@@ -1,5 +1,18 @@
-version: "3.9"
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Paperless.DAL.Service/Dockerfile  
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_URLS: "http://0.0.0.0:8080"
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=paperless;Username=postgres;Password=postgres"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres:16
     environment:
@@ -9,11 +22,12 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - dbdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d paperless"]
       interval: 5s
       timeout: 5s
       retries: 5
+
 volumes:
-  pgdata:
+  dbdata:
