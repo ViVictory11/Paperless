@@ -18,7 +18,7 @@ namespace Paperless.DAL.Service.Data
                 e.Property(x => x.FileName).HasMaxLength(300).IsRequired();
                 e.Property(x => x.ContentType).HasMaxLength(200).IsRequired();
                 e.Property(x => x.SizeBytes).IsRequired();
-                e.Property(x => x.UploadedAt).IsRequired();
+                e.Property(x => x.UploadedAt).IsRequired().HasDefaultValueSql("timezone('utc', now())");
             });
         }
     }

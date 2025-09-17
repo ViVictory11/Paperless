@@ -1,4 +1,4 @@
-﻿namespace Paperless.DAL.Service.Contracts
+﻿namespace Paperless.Contracts
 {
     public record CreateDocumentDto(string FileName, string ContentType, long SizeBytes);
 }
