@@ -76,10 +76,6 @@
               "EditorCaption": ""
             },
             {
-              "$type": "Bookmark",
-              "Name": "ST:1:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
-            },
-            {
               "$type": "Document",
               "DocumentIndex": 2,
               "Title": "AppDbContext.cs",
@@ -124,8 +120,8 @@
               "Title": "DocumentDto.cs",
               "DocumentMoniker": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.Contracts\\DocumentDto.cs",
               "RelativeDocumentMoniker": "..\\Paperless.Contracts\\DocumentDto.cs",
-              "ToolTip": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.Contracts\\DocumentDto.cs",
-              "RelativeToolTip": "..\\Paperless.Contracts\\DocumentDto.cs",
+              "ToolTip": "C:\\Users\\wikto\\Semester5\\SWEN3\\Paperless\\Paperless.Contracts\\DocumentDto.cs*",
+              "RelativeToolTip": "..\\Paperless.Contracts\\DocumentDto.cs*",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-09-13T18:08:57.06Z",
@@ -195,6 +191,10 @@
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-09-13T17:52:42.988Z",
               "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:1:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
             }
           ]
         },
