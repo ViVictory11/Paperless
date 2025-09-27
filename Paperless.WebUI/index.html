@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Paperless Frontend</title>
+    <style>
+        body {
+            font-family: system-ui;
+            margin: 2rem
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: .2rem .4rem;
+            border-radius: 4px
+        }
+    </style>
+</head>
+<body>
+    <h1>Paperless Frontend</h1>
+    <p>Status: <span id="s">checking…</span></p>
+<pre id="out"></pre>
+    <script>
+        (async () => {
+            try {
+                const r = await fetch('/api/documents');
+                const t = await r.text();
+                document.getElementById('s').textContent = r.ok ? 'We reached API yayyy' : `API error ${r.status}`;
+                document.getElementById('out').textContent = t;
+            } catch (e) {
+                document.getElementById('s').textContent = 'Could not reach API :((';
+                document.getElementById('out').textContent = String(e);
+            }
+        })();
+    </script>
+</body>
+</html>
