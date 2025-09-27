@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 
 
 builder.Services.AddControllers();
@@ -29,7 +28,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate(); // creates Documents table, etc.
+    db.Database.Migrate(); 
 }
 
 if (app.Environment.IsDevelopment())
