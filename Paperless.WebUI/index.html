@@ -1,38 +1,363 @@
 ﻿<!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Paperless Frontend</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Paperless — Documents</title>
     <style>
-        body {
-            font-family: system-ui;
-            margin: 2rem
+        :root {
+            --bg: #f7f7fb;
+            --card: #ffffff;
+            --ink: #1f2937;
+            --muted: #6b7280;
+            --brand: #6d28d9;
+            --brand-weak: #ede9fe;
+            --ok: #10b981;
+            --bad: #ef4444;
+            --ring: 0 0 0 4px rgba(109,40,217,.15);
+            --radius: 16px;
         }
 
-        code {
-            background: #f4f4f4;
-            padding: .2rem .4rem;
-            border-radius: 4px
+        * {
+            box-sizing: border-box
+        }
+
+        html, body {
+            height: 100%
+        }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
+            color: var(--ink);
+            background: linear-gradient(180deg,#fafafe, var(--bg));
+        }
+
+        .wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            font-size: 24px;
+        }
+
+        .logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            background: conic-gradient(from 200deg at 50% 50%, #a78bfa, #c084fc, #f472b6, #a78bfa);
+            box-shadow: 0 6px 18px rgba(109,40,217,.25);
+        }
+
+        .chip {
+            font-size: 13px;
+            border-radius: 999px;
+            padding: 6px 10px;
+            background: var(--brand-weak);
+            color: var(--brand);
+            border: 1px solid #e9e4ff;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width:900px) {
+            .grid {
+                grid-template-columns: 1fr
+            }
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: 0 10px 30px rgba(17,24,39,.06);
+            border: 1px solid #eef;
+            padding: 18px;
+        }
+
+            .card h2 {
+                margin: 0 0 10px 0;
+                font-size: 18px
+            }
+
+        .muted {
+            color: var(--muted)
+        }
+
+        .upload-box {
+            border: 2px dashed #ddd;
+            border-radius: 14px;
+            padding: 18px;
+            text-align: center;
+            background: #fcfcff;
+        }
+
+            .upload-box .soon {
+                display: inline-block;
+                margin-top: 10px;
+                font-size: 12px;
+                background: #ffe9f0;
+                color: #b91c1c;
+                border: 1px solid #ffd6e1;
+                border-radius: 999px;
+                padding: 4px 10px;
+            }
+
+        .btn {
+            appearance: none;
+            border: 0;
+            background: var(--brand);
+            color: white;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-weight: 600;
+            cursor: not-allowed;
+            opacity: .7;
+            box-shadow: 0 8px 20px rgba(109,40,217,.25);
+        }
+
+        .list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
+            gap: 14px
+        }
+
+        .doc {
+            border: 1px solid #eef;
+            border-radius: 14px;
+            padding: 14px;
+            background: white;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            transition: transform .08s ease, box-shadow .08s ease;
+        }
+
+            .doc:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 24px rgba(17,24,39,.08)
+            }
+
+            .doc .icon {
+                width: 36px;
+                height: 36px;
+                border-radius: 10px;
+                background: #eef;
+                display: grid;
+                place-items: center;
+                font-weight: 800;
+                color: #6b21a8;
+            }
+
+            .doc .meta {
+                font-size: 12px;
+                color: var(--muted)
+            }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap
+        }
+
+        .pill {
+            font-size: 11px;
+            border-radius: 999px;
+            padding: 3px 8px;
+            background: #f3f4f6;
+            border: 1px solid #eee
+        }
+
+        .skeleton {
+            height: 100px;
+            border-radius: 14px;
+            background: linear-gradient(90deg,#f3f4f6 25%,#f9fafb 37%,#f3f4f6 63%);
+            background-size: 400% 100%;
+            animation: shimmer 1.2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 100% 0
+            }
+
+            100% {
+                background-position: -100% 0
+            }
+        }
+
+        .empty {
+            padding: 24px;
+            text-align: center;
+            border: 1px dashed #e5e7eb;
+            border-radius: 14px;
+            background: #fff;
+        }
+
+        a.doc-link {
+            color: inherit;
+            text-decoration: none
+        }
+
+        footer {
+            margin-top: 26px;
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center
         }
     </style>
 </head>
 <body>
-    <h1>Paperless Frontend</h1>
-    <p>Status: <span id="s">checking…</span></p>
-<pre id="out"></pre>
+    <div class="wrap">
+        <header>
+            <div class="brand">
+                <div class="logo" aria-hidden="true"></div>
+                <div>Paperless</div>
+            </div>
+            <div id="status" class="chip">Checking API…</div>
+        </header>
+
+        <div class="grid">
+            <aside class="card">
+                <h2>Upload</h2>
+                <p class="muted">File upload PLACEHOLDER</p>
+                <div class="upload-box" aria-disabled="true">
+                    <div style="font-size:36px;line-height:1">📄⬆️</div>
+                    <div style="font-weight:600;margin-top:6px">Drag &amp; drop files</div>
+                    <div class="muted" style="font-size:12px">PDF, PNG, JPG • Max 10 MB</div>
+                </div>
+
+                <div style="margin-top:16px">
+                    <h2 style="margin-bottom:6px">extras</h2>
+                    <ul class="muted" style="margin:0 0 0 18px;padding:0">
+                        <li>extras for later</li>
+                    </ul>
+                </div>
+            </aside>
+            <main class="card">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
+                    <h2 style="margin:0">Your Documents</h2>
+                    <div class="pill" id="count">0 items</div>
+                </div>
+                <div id="docs" class="list" aria-live="polite" aria-busy="true">
+                    <!-- placeholders while loading -->
+                    <div class="skeleton"></div>
+                    <div class="skeleton"></div>
+                    <div class="skeleton"></div>
+                </div>
+            </main>
+        </div>
+
+        <footer>
+            Paperless Web
+        </footer>
+    </div>
+
     <script>
-        (async () => {
+        const statusEl = document.getElementById('status');
+        const listEl = document.getElementById('docs');
+        const countEl = document.getElementById('count');
+
+        function fmtBytes(n) {
+            if (!Number.isFinite(n)) return '-';
+            const u = ['B', 'KB', 'MB', 'GB']; let i = 0;
+            while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+            return n.toFixed(n < 10 && i > 0 ? 1 : 0) + ' ' + u[i];
+        }
+        function fmtDate(s) {
+            const d = new Date(s);
+            if (isNaN(d)) return '-';
+            return d.toLocaleString();
+        }
+        function extIcon(name, contentType) {
+            const ext = (name?.split('.').pop() || '').toLowerCase();
+            if (contentType?.includes('pdf') || ext === 'pdf') return 'PDF';
+            if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) return 'IMG';
+            if (['doc', 'docx'].includes(ext)) return 'DOC';
+            if (['xls', 'xlsx', 'csv'].includes(ext)) return 'XLS';
+            return 'FILE';
+        }
+
+        async function load() {
+            listEl.setAttribute('aria-busy', 'true');
             try {
                 const r = await fetch('/api/documents');
-                const t = await r.text();
-                document.getElementById('s').textContent = r.ok ? 'We reached API yayyy' : `API error ${r.status}`;
-                document.getElementById('out').textContent = t;
-            } catch (e) {
-                document.getElementById('s').textContent = 'Could not reach API :((';
-                document.getElementById('out').textContent = String(e);
+                let data, text;
+                try {
+                    data = await r.json();
+                } catch {
+                    text = await r.text();
+                    try { data = JSON.parse(text); } catch { data = null; }
+                }
+
+                if (!r.ok) {
+                    statusEl.textContent = `API error ${r.status}`;
+                    statusEl.style.background = '#fee2e2';
+                    statusEl.style.color = '#991b1b';
+                } else {
+                    statusEl.textContent = 'API connected';
+                    statusEl.style.background = '#d1fae5';
+                    statusEl.style.color = '#065f46';
+                }
+
+                listEl.innerHTML = '';
+                if (Array.isArray(data) && data.length) {
+                    countEl.textContent = data.length + (data.length === 1 ? ' item' : ' items');
+                    for (const doc of data) {
+                        const card = document.createElement('a');
+                        card.className = 'doc doc-link';
+                        card.href = '#';
+                        card.innerHTML = `
+                  <div class="icon">${extIcon(doc.fileName, doc.contentType)}</div>
+                  <div>
+                    <div style="font-weight:600">${doc.fileName || '(unnamed file)'}</div>
+                    <div class="meta">${fmtBytes(doc.sizeBytes)} • ${doc.contentType || '-'} • ${fmtDate(doc.uploadedAt)}</div>
+                    <div class="row" style="margin-top:8px">
+                      <span class="pill">id: ${String(doc.id).slice(0, 8)}…</span>
+                    </div>
+                  </div>
+                `;
+                        listEl.appendChild(card);
+                    }
+                } else {
+                    countEl.textContent = '0 items';
+                    const empty = document.createElement('div');
+                    empty.className = 'empty';
+                    empty.innerHTML = `No documents yet.<br><span class="muted">Upload placeholder is on the left — feature coming soon.</span>`;
+                    listEl.appendChild(empty);
+                }
+            } catch (err) {
+                statusEl.textContent = 'Could not reach API';
+                statusEl.style.background = '#fee2e2';
+                statusEl.style.color = '#991b1b';
+                listEl.innerHTML = `
+              <div class="empty">
+                <div style="font-weight:600">Connection error</div>
+                <div class="muted" style="margin-top:6px">${String(err)}</div>
+                <div class="muted" style="margin-top:6px">Is Docker Desktop / the API container running?</div>
+              </div>`;
+            } finally {
+                listEl.removeAttribute('aria-busy');
             }
-        })();
+        }
+        load();
     </script>
 </body>
 </html>
