@@ -19,7 +19,7 @@ public class RepositoryTests : IDisposable
 
     public RepositoryTests()
     {
-        // One shared open connection per test class instance
+   
         _conn = new SqliteConnection("DataSource=:memory:");
         _conn.Open();
 
@@ -27,7 +27,6 @@ public class RepositoryTests : IDisposable
             .UseSqlite(_conn)
             .Options;
 
-        // Create schema once
         using var setup = new AppDbContext(_options);
         setup.Database.EnsureCreated();
     }
