@@ -4,53 +4,84 @@ using Paperless.Contracts;
 using Paperless.DAL.Service.Models;
 using Paperless.DAL.Service.Repositories;
 
-namespace Paperless.DAL.Service.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class DocumentsController : ControllerBase
+namespace Paperless.DAL.Controllers
 {
-    private readonly IDocumentRepository _repo;
-    private readonly IMapper _mapper;
-
-    public DocumentsController(IDocumentRepository repo, IMapper mapper)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class DocumentsController : ControllerBase
     {
-        _repo = repo;
-        _mapper = mapper;
-    }
+        private readonly IDocumentRepository _repo;
+        private readonly IMapper _mapper;
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<DocumentDto>>> GetAll(CancellationToken ct)
-    {
-        var entities = await _repo.GetAllAsync(ct);
-        return Ok(_mapper.Map<IEnumerable<DocumentDto>>(entities));
-    }
+        public DocumentsController(IDocumentRepository repo, IMapper mapper)
+        {
+            _repo = repo;
+            _mapper = mapper;
+        }
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<DocumentDto>> GetById(Guid id, CancellationToken ct)
-    {
-        var entity = await _repo.GetAsync(id, ct);
-        if (entity is null) return NotFound();
-        return Ok(_mapper.Map<DocumentDto>(entity));
-    }
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<DocumentDto>>> GetAll(CancellationToken ct)
+        {
+            var docs = await _repo.GetAllAsync(ct);
+            return Ok(_mapper.Map<IEnumerable<DocumentDto>>(docs));
+        }
 
-    [HttpPost]
-    public async Task<ActionResult<DocumentDto>> Create([FromBody] CreateDocumentDto dto, CancellationToken ct)
-    {
-        var entity = _mapper.Map<DocumentEntity>(dto);
-        // entity.Id = Guid.NewGuid();
-        // entity.UploadedAt = DateTime.UtcNow;
+        [HttpGet("{id}")]
+        public async Task<ActionResult<DocumentDto>> GetById(Guid id, CancellationToken ct)
+        {
+            var doc = await _repo.GetAsync(id, ct);
+            if (doc == null) return NotFound();
+            return Ok(_mapper.Map<DocumentDto>(doc));
+        }
 
-        entity = await _repo.AddAsync(entity, ct);
-        var result = _mapper.Map<DocumentDto>(entity);
+        [HttpPost("upload")]
+        [RequestSizeLimit(100_000_000)] 
+        public async Task<ActionResult<IEnumerable<DocumentDto>>> Upload(CancellationToken ct)
+        {
+            var files = Request.Form?.Files;
+            if (files is null || files.Count == 0)
+                return BadRequest("No files in form-data.");
 
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
-    }
+            var uploadsRel = Path.Combine("Assets", "Uploads");
+            var uploadsAbs = Path.Combine(Directory.GetCurrentDirectory(), uploadsRel);
+            Directory.CreateDirectory(uploadsAbs);
 
-    [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
-    {
-        var removed = await _repo.DeleteAsync(id, ct);
-        return removed ? NoContent() : NotFound();
+            var created = new List<DocumentDto>();
+
+            foreach (var file in files)
+            {
+                if (file.Length == 0) continue;
+
+                var newId = Guid.NewGuid();
+                var ext = Path.GetExtension(file.FileName);
+                var storedName = $"{newId}{ext}";
+                var absPath = Path.Combine(uploadsAbs, storedName);
+
+                using (var fs = new FileStream(absPath, FileMode.Create))
+                    await file.CopyToAsync(fs, ct);
+
+                var entity = new DocumentEntity
+                {
+                    Id = newId,
+                    FileName = file.FileName,
+                    ContentType = file.ContentType ?? "application/octet-stream",
+                    SizeBytes = file.Length,
+                    UploadedAt = DateTime.UtcNow
+                };
+
+                entity = await _repo.AddAsync(entity, ct);
+                created.Add(_mapper.Map<DocumentDto>(entity));
+            }
+
+            return CreatedAtAction(nameof(GetAll), null, created);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+        {
+            var success = await _repo.DeleteAsync(id, ct);
+            if (!success) return NotFound();
+            return NoContent();
+        }
     }
 }
