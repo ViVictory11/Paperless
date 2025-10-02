@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
+    <meta name="csrf-token" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Paperless — Documents</title>
     <style>
@@ -107,18 +108,22 @@
             padding: 18px;
             text-align: center;
             background: #fcfcff;
+            transition: border-color .15s ease, background .15s ease;
         }
 
-            .upload-box .soon {
-                display: inline-block;
-                margin-top: 10px;
-                font-size: 12px;
-                background: #ffe9f0;
-                color: #b91c1c;
-                border: 1px solid #ffd6e1;
-                border-radius: 999px;
-                padding: 4px 10px;
+            .upload-box.dragover {
+                border-color: #c4b5fd;
+                background: #f6f5ff;
+                box-shadow: var(--ring);
             }
+
+        .upload-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
 
         .btn {
             appearance: none;
@@ -128,10 +133,55 @@
             border-radius: 12px;
             padding: 10px 14px;
             font-weight: 600;
-            cursor: not-allowed;
-            opacity: .7;
+            cursor: pointer;
             box-shadow: 0 8px 20px rgba(109,40,217,.25);
         }
+
+            .btn:disabled {
+                opacity: .5;
+                cursor: not-allowed;
+            }
+
+        .btn-ghost {
+            background: #f3f0ff;
+            color: #4c1d95;
+            box-shadow: none;
+            border: 1px solid #e9e4ff;
+        }
+
+        .queue {
+            margin-top: 12px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .q-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #eef;
+            border-radius: 12px;
+            background: white;
+        }
+
+        .progress {
+            position: relative;
+            height: 8px;
+            background: #f3f4f6;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+            .progress > span {
+                position: absolute;
+                inset: 0;
+                transform-origin: left;
+                transform: scaleX(0);
+                background: linear-gradient(90deg, #c4b5fd, #a78bfa);
+                transition: transform .2s ease;
+            }
 
         .list {
             display: grid;
@@ -140,6 +190,7 @@
         }
 
         .doc {
+            position: relative;
             border: 1px solid #eef;
             border-radius: 14px;
             padding: 14px;
@@ -164,6 +215,7 @@
                 place-items: center;
                 font-weight: 800;
                 color: #6b21a8;
+                flex: 0 0 36px;
             }
 
             .doc .meta {
@@ -184,6 +236,55 @@
             background: #f3f4f6;
             border: 1px solid #eee
         }
+
+        /* Delete button (aesthetic + accessible) */
+        .del {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            border: 1px solid #fee2e2;
+            background: #fff5f5;
+            color: #b91c1c;
+            border-radius: 10px;
+            padding: 6px 8px;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .del:hover {
+                background: #ffe4e6;
+                box-shadow: 0 4px 14px rgba(239,68,68,.18);
+            }
+
+            .del:focus {
+                outline: none;
+                box-shadow: 0 0 0 4px rgba(239,68,68,.15);
+            }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            background: #111827;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.25);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s ease, transform .2s ease;
+        }
+
+            .toast.show {
+                opacity: 1;
+                transform: translateX(-50%) translateY(-6px);
+            }
 
         .skeleton {
             height: 100px;
@@ -237,12 +338,19 @@
         <div class="grid">
             <aside class="card">
                 <h2>Upload</h2>
-                <p class="muted">File upload PLACEHOLDER</p>
-                <div class="upload-box" aria-disabled="true">
+                <p class="muted">Choose files or drag them into the box. Multiple files supported.</p>
+
+                <div id="drop" class="upload-box" tabindex="0" aria-label="Upload files by dragging and dropping or using the button">
                     <div style="font-size:36px;line-height:1">📄⬆️</div>
-                    <div style="font-weight:600;margin-top:6px">Drag &amp; drop files</div>
+                    <div style="font-weight:600;margin-top:6px">Drag & drop files</div>
                     <div class="muted" style="font-size:12px">PDF, PNG, JPG • Max 10 MB</div>
+                    <div class="upload-actions">
+                        <input id="file" type="file" multiple hidden accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" />
+                        <button id="choose" class="btn-ghost btn" type="button">Choose files…</button>
+                        <button id="start" class="btn" type="button" disabled>Upload</button>
+                    </div>
                 </div>
+                <div id="queue" class="queue" aria-live="polite"></div>
 
                 <div style="margin-top:16px">
                     <h2 style="margin-bottom:6px">extras</h2>
@@ -257,7 +365,6 @@
                     <div class="pill" id="count">0 items</div>
                 </div>
                 <div id="docs" class="list" aria-live="polite" aria-busy="true">
-                    <!-- placeholders while loading -->
                     <div class="skeleton"></div>
                     <div class="skeleton"></div>
                     <div class="skeleton"></div>
@@ -265,15 +372,28 @@
             </main>
         </div>
 
-        <footer>
-            Paperless Web
-        </footer>
+        <footer>Paperless Web</footer>
     </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <script>
         const statusEl = document.getElementById('status');
         const listEl = document.getElementById('docs');
         const countEl = document.getElementById('count');
+
+        const dropEl = document.getElementById('drop');
+        const fileInput = document.getElementById('file');
+        const chooseBtn = document.getElementById('choose');
+        const startBtn = document.getElementById('start');
+        const queueEl = document.getElementById('queue');
+
+        const toastEl = document.getElementById('toast');
+        function toast(msg) {
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            setTimeout(() => toastEl.classList.remove('show'), 1800);
+        }
 
         function fmtBytes(n) {
             if (!Number.isFinite(n)) return '-';
@@ -295,17 +415,27 @@
             return 'FILE';
         }
 
+        async function getCsrfHeaders() {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            return token ? { 'X-CSRF-Token': token } : {};
+        }
+        async function apiDeleteDocument(id) {
+            const res = await fetch(`/api/documents/${encodeURIComponent(id)}`, {
+                method: 'DELETE',
+                headers: { ...(await getCsrfHeaders()) }
+            });
+            if (res.ok || res.status === 204) return;
+            let msg = `Server responded ${res.status}`;
+            try { const j = await res.json(); if (j?.message) msg = j.message; } catch { }
+            throw new Error(msg);
+        }
+
         async function load() {
             listEl.setAttribute('aria-busy', 'true');
             try {
                 const r = await fetch('/api/documents');
                 let data, text;
-                try {
-                    data = await r.json();
-                } catch {
-                    text = await r.text();
-                    try { data = JSON.parse(text); } catch { data = null; }
-                }
+                try { data = await r.json(); } catch { text = await r.text(); try { data = JSON.parse(text); } catch { data = null; } }
 
                 if (!r.ok) {
                     statusEl.textContent = `API error ${r.status}`;
@@ -317,32 +447,7 @@
                     statusEl.style.color = '#065f46';
                 }
 
-                listEl.innerHTML = '';
-                if (Array.isArray(data) && data.length) {
-                    countEl.textContent = data.length + (data.length === 1 ? ' item' : ' items');
-                    for (const doc of data) {
-                        const card = document.createElement('a');
-                        card.className = 'doc doc-link';
-                        card.href = '#';
-                        card.innerHTML = `
-                  <div class="icon">${extIcon(doc.fileName, doc.contentType)}</div>
-                  <div>
-                    <div style="font-weight:600">${doc.fileName || '(unnamed file)'}</div>
-                    <div class="meta">${fmtBytes(doc.sizeBytes)} • ${doc.contentType || '-'} • ${fmtDate(doc.uploadedAt)}</div>
-                    <div class="row" style="margin-top:8px">
-                      <span class="pill">id: ${String(doc.id).slice(0, 8)}…</span>
-                    </div>
-                  </div>
-                `;
-                        listEl.appendChild(card);
-                    }
-                } else {
-                    countEl.textContent = '0 items';
-                    const empty = document.createElement('div');
-                    empty.className = 'empty';
-                    empty.innerHTML = `No documents yet.<br>`;
-                    listEl.appendChild(empty);
-                }
+                renderDocs(Array.isArray(data) ? data : []);
             } catch (err) {
                 statusEl.textContent = 'Could not reach API';
                 statusEl.style.background = '#fee2e2';
@@ -357,6 +462,160 @@
                 listEl.removeAttribute('aria-busy');
             }
         }
+
+        function renderDocs(data) {
+            listEl.innerHTML = '';
+            if (data.length === 0) {
+                countEl.textContent = '0 items';
+                const empty = document.createElement('div');
+                empty.className = 'empty';
+                empty.innerHTML = `No documents yet.<br>`;
+                listEl.appendChild(empty);
+                return;
+            }
+            countEl.textContent = data.length + (data.length === 1 ? ' item' : ' items');
+            for (const doc of data) {
+                const card = document.createElement('div');
+                card.className = 'doc';
+                card.setAttribute('data-id', doc.id);
+                card.innerHTML = `
+              <button class="del" aria-label="Delete ${doc.fileName}">
+                <span aria-hidden="true">✕</span> Delete
+              </button>
+              <div class="icon">${extIcon(doc.fileName, doc.contentType)}</div>
+              <div>
+                <div style="font-weight:600; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+                  <a class="doc-link" href="#" title="Open document">${doc.fileName || '(unnamed file)'}</a>
+                </div>
+                <div class="meta">${fmtBytes(doc.sizeBytes)} • ${doc.contentType || '-'} • ${fmtDate(doc.uploadedAt)}</div>
+                <div class="row" style="margin-top:8px">
+                  <span class="pill">id: ${String(doc.id).slice(0, 8)}…</span>
+                </div>
+              </div>
+            `;
+                const delBtn = card.querySelector('.del');
+                delBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const name = doc.fileName || 'this file';
+                    if (!confirm(`Delete \"${name}\"? This cannot be undone.`)) return;
+                    card.style.opacity = .6;
+                    delBtn.disabled = true;
+                    try {
+                        await apiDeleteDocument(doc.id);
+                        card.remove();
+                        updateCount();
+                        toast('Deleted');
+                    } catch (err) {
+                        card.style.opacity = 1;
+                        delBtn.disabled = false;
+                        alert('Could not delete: ' + err.message);
+                    }
+                });
+                listEl.appendChild(card);
+            }
+        }
+
+        function updateCount() {
+            const items = listEl.querySelectorAll('.doc');
+            const n = items.length;
+            countEl.textContent = n + (n === 1 ? ' item' : ' items');
+            if (n === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'empty';
+                empty.textContent = 'No documents yet.';
+                listEl.appendChild(empty);
+            }
+        }
+
+        const queue = [];
+
+        function addToQueue(files) {
+            for (const f of files) {
+                if (f.size > 10 * 1024 * 1024) {
+                    toast(`${f.name} is larger than 10 MB`);
+                    continue;
+                }
+                const id = crypto.randomUUID();
+                queue.push({ id, file: f, progress: 0, state: 'queued' });
+            }
+            renderQueue();
+        }
+
+        function renderQueue() {
+            queueEl.innerHTML = '';
+            if (queue.length === 0) { startBtn.disabled = true; return; }
+            startBtn.disabled = false;
+            for (const item of queue) {
+                const row = document.createElement('div');
+                row.className = 'q-item';
+                row.setAttribute('data-id', item.id);
+                row.innerHTML = `
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                  <strong>${item.file.name}</strong>
+                  <span class="pill">${fmtBytes(item.file.size)}</span>
+                  <span class="pill">${item.file.type || 'unknown'}</span>
+                  <span class="pill" data-state>${item.state}</span>
+                </div>
+                <div class="progress" style="margin-top:8px"><span style="transform: scaleX(${item.progress / 100})"></span></div>
+              </div>
+              <button class="btn-ghost btn" type="button" data-remove>Remove</button>
+            `;
+                row.querySelector('[data-remove]').addEventListener('click', () => {
+                    const idx = queue.findIndex(q => q.id === item.id);
+                    if (idx >= 0) { queue.splice(idx, 1); renderQueue(); }
+                });
+                queueEl.appendChild(row);
+            }
+        }
+
+        chooseBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => addToQueue(e.target.files));
+
+        ;['dragenter', 'dragover'].forEach(ev => dropEl.addEventListener(ev, (e) => {
+            e.preventDefault(); e.stopPropagation(); dropEl.classList.add('dragover');
+        }));
+        ;['dragleave', 'drop'].forEach(ev => dropEl.addEventListener(ev, (e) => {
+            e.preventDefault(); e.stopPropagation(); dropEl.classList.remove('dragover');
+        }));
+        dropEl.addEventListener('drop', (e) => addToQueue(e.dataTransfer.files));
+
+        startBtn.addEventListener('click', async () => {
+
+            for (const item of queue) { item.state = 'uploading'; }
+            renderQueue();
+
+            for (const item of queue) {
+                await animateProgress(item, 300 + Math.random() * 900);
+                item.state = 'processing'; renderQueue();
+                await animateProgress(item, 400 + Math.random() * 800, 60, 100);
+                item.state = 'done'; renderQueue();
+            }
+
+            queue.length = 0;
+            renderQueue();
+            toast('Upload complete');
+            load();
+        });
+
+        function animateProgress(item, duration = 800, from = 0, to = 90) {
+            return new Promise((resolve) => {
+                const start = performance.now();
+                const step = (now) => {
+                    const t = Math.min(1, (now - start) / duration);
+                    item.progress = Math.round(from + (to - from) * t);
+                    const row = queueEl.querySelector(`.q-item[data-id="${item.id}"]`);
+                    if (row) {
+                        row.querySelector('.progress > span').style.transform = `scaleX(${item.progress / 100})`;
+                        row.querySelector('[data-state]').textContent = item.state;
+                    }
+                    if (t < 1) requestAnimationFrame(step); else resolve();
+                };
+                requestAnimationFrame(step);
+            });
+        }
+
         load();
     </script>
 </body>
