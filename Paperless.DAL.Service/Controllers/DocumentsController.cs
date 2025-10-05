@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using System.Security.Cryptography.X509Certificates;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Paperless.Contracts;
 using Paperless.DAL.Service.Models;
@@ -48,13 +49,41 @@ namespace Paperless.DAL.Controllers
 
             var created = new List<DocumentDto>();
 
+            static bool HasPdfExtension(string fileName) => string.Equals(Path.GetExtension(fileName), ".pdf", StringComparison.OrdinalIgnoreCase);
+            static async Task<bool> LooksLikePdfAsync(IFormFile file, CancellationToken ct){
+                try{
+                    using var stream = file.OpenReadStream();
+
+                    if (!stream.CanRead) return false;
+                        var head = new byte[5];
+                        var read = await stream.ReadAsync(head, 0, head.Length, ct);
+                    if (read < 5) return false;
+                        var sig = System.Text.Encoding.ASCII.GetString(head);
+                    return sig == "%PDF-";
+                    }
+                catch { return false; }
+             }
+
+
             foreach (var file in files)
             {
                 if (file.Length == 0) continue;
 
+                if (file.Length > 10 * 1024 * 1024)
+                {
+                    return BadRequest($"{file.FileName}: File too large (>10 MB).");
+                }
+                var hasPdfExt = HasPdfExtension(file.FileName);
+                var looksPdf = await LooksLikePdfAsync(file, ct);
+                var isPdfContentType = string.Equals(file.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase);
+
+                if (!(hasPdfExt && looksPdf))
+                {
+                    return BadRequest($"{file.FileName}: Only PDF files are allowed.");
+                }
+
                 var newId = Guid.NewGuid();
-                var ext = Path.GetExtension(file.FileName);
-                var storedName = $"{newId}{ext}";
+                var storedName = $"{newId}.pdf";
                 var absPath = Path.Combine(uploadsAbs, storedName);
 
                 using (var fs = new FileStream(absPath, FileMode.Create))
@@ -64,7 +93,7 @@ namespace Paperless.DAL.Controllers
                 {
                     Id = newId,
                     FileName = file.FileName,
-                    ContentType = file.ContentType ?? "application/octet-stream",
+                    ContentType = "application/pdf",
                     SizeBytes = file.Length,
                     UploadedAt = DateTime.UtcNow
                 };
