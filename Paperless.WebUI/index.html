@@ -286,6 +286,33 @@
             color: var(--muted);
             text-align: center
         }
+
+        .q-item {
+            overflow: hidden;
+        }
+
+            .q-item > div {
+                min-width: 0;
+            }
+
+            .q-item strong {
+                display: block;
+                max-width: 100%;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+        .queue {
+            max-height: 180px;
+            overflow: auto;
+            padding-right: 2px;
+        }
+
+        .doc > div {
+            min-width: 0;
+        }
+
     </style>
 </head>
 <body>
@@ -306,9 +333,9 @@
                 <div id="drop" class="upload-box" tabindex="0" aria-label="Upload files by dragging and dropping or using the button">
                     <div style="font-size:36px;line-height:1">📄⬆️</div>
                     <div style="font-weight:600;margin-top:6px">Drag & drop files</div>
-                    <div class="muted" style="font-size:12px">PDF, PNG, JPG • Max 10 MB</div>
+                    <div class="muted" style="font-size:12px">PDF - Max 10 MB</div>
                     <div class="upload-actions">
-                        <input id="file" type="file" multiple hidden accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" />
+                        <input id="file" type="file" multiple hidden accept=".pdf,application/pdf" />
                         <button id="choose" class="btn-ghost btn" type="button">Choose files…</button>
                         <button id="start" class="btn" type="button" disabled>Upload</button>
                     </div>
@@ -435,7 +462,7 @@
                 card.setAttribute('data-id', doc.id);
                 card.innerHTML = `
               <button class="del" aria-label="Delete ${doc.fileName}">
-                <span aria-hidden="true">✕</span> Delete
+                <span aria-hidden="true">✕</span>
               </button>
               <div class="icon">${extIcon(doc.fileName, doc.contentType)}</div>
               <div>
@@ -491,6 +518,14 @@
                     toast(`${f.name} is larger than 10 MB`);
                     continue;
                 }
+                const nameLower = (f.name || '').toLowerCase();
+                const extOk = nameLower.endsWith('.pdf');
+                const type = (f.type || '').toLowerCase();
+                const mimeOk = type === 'application/pdf' || type === '';
+                if (!(extOk && mimeOk)) {
+                    toast(`${f.name}: Only PDF files are allowed`);
+                    continue;
+                }
                 const id = crypto.randomUUID();
                 queue.push({ id, file: f, progress: 0, state: 'queued' });
             }
@@ -510,7 +545,7 @@
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
                   <strong>${item.file.name}</strong>
                   <span class="pill">${fmtBytes(item.file.size)}</span>
-                  <span class="pill">${item.file.type || 'unknown'}</span>
+                  <span class="pill">application/pdf</span>
                 </div>
               </div>
               <button class="btn-ghost btn" type="button" data-remove>Remove</button>
