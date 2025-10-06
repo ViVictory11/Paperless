@@ -75,6 +75,8 @@ namespace Paperless.DAL.Controllers
 
                 entity = await _repo.AddAsync(entity, ct);
                 created.Add(_mapper.Map<DocumentDto>(entity));
+                var message = $"{{ \"documentId\": \"{entity.Id}\", \"fileName\": \"{entity.FileName}\" }}";
+                _rabbitMqService.SendMessage(message);
             }
 
             return CreatedAtAction(nameof(GetAll), null, created);
