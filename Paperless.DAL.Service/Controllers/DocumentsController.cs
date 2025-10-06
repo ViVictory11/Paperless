@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Paperless.Contracts;
+using Paperless.DAL.Service;
 using Paperless.DAL.Service.Models;
 using Paperless.DAL.Service.Repositories;
 
@@ -12,12 +13,15 @@ namespace Paperless.DAL.Controllers
     {
         private readonly IDocumentRepository _repo;
         private readonly IMapper _mapper;
+        private readonly IRabbitMqService _rabbitMqService;
 
-        public DocumentsController(IDocumentRepository repo, IMapper mapper)
+        public DocumentsController(IDocumentRepository repo, IMapper mapper, IRabbitMqService rabbitMqService)
         {
             _repo = repo;
             _mapper = mapper;
+            _rabbitMqService = rabbitMqService;
         }
+
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<DocumentDto>>> GetAll(CancellationToken ct)
