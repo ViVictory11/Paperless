@@ -1,5 +1,4 @@
-﻿using System.Security.Cryptography.X509Certificates;
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Paperless.Contracts;
 using Paperless.DAL.Service;
@@ -74,7 +73,7 @@ namespace Paperless.DAL.Controllers
             {
                 var files = Request.Form?.Files;
                 if (files is null || files.Count == 0)
-                    return BadRequest("No files in form-data.");
+                    return BadRequest("No files in form.");
 
                 var uploadsRel = Path.Combine("Assets", "Uploads");
                 var uploadsAbs = Path.Combine(Directory.GetCurrentDirectory(), uploadsRel);
@@ -147,7 +146,7 @@ namespace Paperless.DAL.Controllers
             }
             catch (IOException ex)
             {
-                return StatusCode(500, new { message = $"File I/O error: {ex.Message}" });
+                return StatusCode(500, new { message = $"File error: {ex.Message}" });
             }
             catch (UnauthorizedAccessException ex)
             {
