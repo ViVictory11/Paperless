@@ -5,6 +5,8 @@ using Paperless.DAL.Service.Repositories;
 using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
 using Paperless.DAL.Service;
+using Paperless.DAL.Service.Messaging;
+using Paperless.DAL.Service.Services;      
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +24,10 @@ builder.Services.AddAutoMapper(cfg =>
 });
 
 builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
+
+builder.Services.AddSingleton<IOcrResult, OcrResult>();
+builder.Services.AddHostedService<OcrResultListener>();
+
 
 var app = builder.Build();
 

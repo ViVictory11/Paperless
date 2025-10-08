@@ -4,6 +4,7 @@ using Paperless.Contracts;
 using Paperless.DAL.Service;
 using Paperless.DAL.Service.Models;
 using Paperless.DAL.Service.Repositories;
+using Paperless.DAL.Service.Services;
 
 namespace Paperless.DAL.Controllers
 {
@@ -75,8 +76,12 @@ namespace Paperless.DAL.Controllers
 
                 entity = await _repo.AddAsync(entity, ct);
                 created.Add(_mapper.Map<DocumentDto>(entity));
-                var message = $"{{ \"documentId\": \"{entity.Id}\", \"fileName\": \"{entity.FileName}\" }}";
-                _rabbitMqService.SendMessage(message);
+                var ocrMsg = new OcrMessage
+                {
+                    DocumentId = entity.Id.ToString(),
+                    FilePath = absPath
+                };
+                _rabbitMqService.SendMessage(System.Text.Json.JsonSerializer.Serialize(ocrMsg));
             }
 
             return CreatedAtAction(nameof(GetAll), null, created);
@@ -89,5 +94,16 @@ namespace Paperless.DAL.Controllers
             if (!success) return NotFound();
             return NoContent();
         }
+
+        //Das ist damit abgefragt wird, ob ein result da ist
+        [HttpGet("/api/ocr/result/{id}")]
+        public IActionResult GetOcrResult(Guid id, [FromServices] IOcrResult ocrStore)
+        {
+            var result = ocrStore.GetResult(id.ToString());
+            if (result == null)
+                return StatusCode(202);
+            return Ok(new { ocrText = result });
+        }
+
     }
 }

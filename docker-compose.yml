@@ -12,6 +12,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 
   webui:
@@ -59,7 +61,8 @@ services:
 
   ocr-worker:
     build:
-      context: ./Paperless.OcrWorker
+      context: .
+      dockerfile: Paperless.OcrWorker/Dockerfile
     depends_on:
       rabbitmq:
         condition: service_healthy
