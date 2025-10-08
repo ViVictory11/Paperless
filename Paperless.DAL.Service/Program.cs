@@ -4,6 +4,9 @@ using Paperless.DAL.Service.Profiles;
 using Paperless.DAL.Service.Repositories;
 using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
+using Paperless.DAL.Service;
+using Paperless.DAL.Service.Messaging;
+using Paperless.DAL.Service.Services;      
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +21,13 @@ builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddAutoMapper(cfg =>
 {
     cfg.AddProfile<DocumentProfile>();
-}); 
+});
+
+builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
+
+builder.Services.AddSingleton<IOcrResult, OcrResult>();
+builder.Services.AddHostedService<OcrResultListener>();
+
 
 var app = builder.Build();
 

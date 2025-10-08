@@ -2,8 +2,10 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Paperless.Contracts;
+using Paperless.DAL.Service;
 using Paperless.DAL.Service.Models;
 using Paperless.DAL.Service.Repositories;
+using Paperless.DAL.Service.Services;
 
 namespace Paperless.DAL.Controllers
 {
@@ -13,12 +15,15 @@ namespace Paperless.DAL.Controllers
     {
         private readonly IDocumentRepository _repo;
         private readonly IMapper _mapper;
+        private readonly IRabbitMqService _rabbitMqService;
 
-        public DocumentsController(IDocumentRepository repo, IMapper mapper)
+        public DocumentsController(IDocumentRepository repo, IMapper mapper, IRabbitMqService rabbitMqService)
         {
             _repo = repo;
             _mapper = mapper;
+            _rabbitMqService = rabbitMqService;
         }
+
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<DocumentDto>>> GetAll(CancellationToken ct)
@@ -100,6 +105,12 @@ namespace Paperless.DAL.Controllers
 
                 entity = await _repo.AddAsync(entity, ct);
                 created.Add(_mapper.Map<DocumentDto>(entity));
+                var ocrMsg = new OcrMessage
+                {
+                    DocumentId = entity.Id.ToString(),
+                    FilePath = absPath
+                };
+                _rabbitMqService.SendMessage(System.Text.Json.JsonSerializer.Serialize(ocrMsg));
             }
 
             return CreatedAtAction(nameof(GetAll), null, created);
@@ -112,5 +123,16 @@ namespace Paperless.DAL.Controllers
             if (!success) return NotFound();
             return NoContent();
         }
+
+        //Das ist damit abgefragt wird, ob ein result da ist
+        [HttpGet("/api/ocr/result/{id}")]
+        public IActionResult GetOcrResult(Guid id, [FromServices] IOcrResult ocrStore)
+        {
+            var result = ocrStore.GetResult(id.ToString());
+            if (result == null)
+                return StatusCode(202);
+            return Ok(new { ocrText = result });
+        }
+
     }
 }

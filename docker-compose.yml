@@ -12,6 +12,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 
   webui:
@@ -54,6 +56,21 @@ services:
       retries: 10
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
+
+
+  ocr-worker:
+    build:
+      context: .
+      dockerfile: Paperless.OcrWorker/Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: pass
+      RABBITMQ_QUEUE: document_queue
     restart: unless-stopped
 
 volumes:
