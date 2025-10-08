@@ -18,6 +18,14 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
+var logger = LoggerFactory.Create(config =>
+{
+    config.AddConsole();
+    config.AddDebug();
+}).CreateLogger("Startup");
+
+logger.LogInformation("Initializing Paperless.DAL.Service application...");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
@@ -35,14 +43,28 @@ builder.Services.AddHostedService<OcrResultListener>();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+logger.LogInformation("Paperless.DAL.Service running in {Environment} environment.", app.Environment.EnvironmentName);
+
+try
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate(); 
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        logger.LogInformation("Running database migrations...");
+        db.Database.Migrate();
+        logger.LogInformation("Database migrations completed successfully.");
+    }
 }
+catch (Exception ex)
+{
+    logger.LogCritical(ex, "Database migration failed. Application startup aborted.");
+    throw;
+}
+
 
 if (app.Environment.IsDevelopment())
 {
+    logger.LogInformation("Enabling Swagger UI for Development environment.");
     app.UseSwagger();
     app.UseSwaggerUI();
 }
@@ -53,4 +75,5 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+logger.LogInformation("Starting web host...");
 app.Run();
