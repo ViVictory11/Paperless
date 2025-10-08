@@ -7,6 +7,7 @@ using Paperless.DAL.Service.Models;
 using Paperless.DAL.Service.Repositories;
 using Paperless.DAL.Service.Services;
 using Paperless.DAL.Service.Exceptions;
+using System.Text.Json;
 
 namespace Paperless.DAL.Controllers
 {
@@ -38,6 +39,10 @@ namespace Paperless.DAL.Controllers
             {
                 return StatusCode(500, new { message = ex.Message });
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Unexpected error: {ex.Message}" });
+            }
         }
 
         [HttpGet("{id}")]
@@ -54,6 +59,10 @@ namespace Paperless.DAL.Controllers
             catch (RepositoryException ex)
             {
                 return StatusCode(500, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Unexpected error: {ex.Message}" });
             }
         }
 
@@ -136,6 +145,22 @@ namespace Paperless.DAL.Controllers
             {
                 return StatusCode(500, new { message = ex.Message });
             }
+            catch (IOException ex)
+            {
+                return StatusCode(500, new { message = $"File I/O error: {ex.Message}" });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(500, new { message = $"Access denied: {ex.Message}" });
+            }
+            catch (JsonException ex)
+            {
+                return StatusCode(500, new { message = $"JSON serialization error: {ex.Message}" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Unexpected error: {ex.Message}" });
+            }
         }
 
         [HttpDelete("{id}")]
@@ -151,16 +176,29 @@ namespace Paperless.DAL.Controllers
             {
                 return StatusCode(500, new { message = ex.Message });
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Unexpected error: {ex.Message}" });
+            }
         }
 
         //Das ist damit abgefragt wird, ob ein result da ist
         [HttpGet("/api/ocr/result/{id}")]
         public IActionResult GetOcrResult(Guid id, [FromServices] IOcrResult ocrStore)
         {
-            var result = ocrStore.GetResult(id.ToString());
-            if (result == null)
-                return StatusCode(202);
-            return Ok(new { ocrText = result });
+            try
+            {
+                var result = ocrStore.GetResult(id.ToString());
+                if (result == null)
+                {
+                    return StatusCode(202);
+                }
+                return Ok(new { ocrText = result });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Unexpected error: {ex.Message}" });
+            }
         }
 
     }

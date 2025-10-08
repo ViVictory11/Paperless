@@ -5,8 +5,7 @@ using System.Text;
 
 public class RabbitMqService : IRabbitMqService
 {
-    private readonly IConnection _connection;
-    private readonly RabbitMQ.Client.IModel _channel;
+    private readonly IModel _channel;
 
     public RabbitMqService()
     {
@@ -17,8 +16,9 @@ public class RabbitMqService : IRabbitMqService
             Password = "pass"
         };
 
-        _connection = factory.CreateConnection();
-        _channel = _connection.CreateModel();
+        var connection = factory.CreateConnection();
+        _channel = connection.CreateModel();
+
         _channel.QueueDeclare(
             queue: "document_queue",
             durable: false,
@@ -30,12 +30,19 @@ public class RabbitMqService : IRabbitMqService
 
     public void SendMessage(string message)
     {
-        var body = Encoding.UTF8.GetBytes(message);
-        _channel.BasicPublish(
-            exchange: "",
-            routingKey: "document_queue",
-            basicProperties: null,
-            body: body
-        );
+        try
+        {
+            var body = Encoding.UTF8.GetBytes(message);
+            _channel.BasicPublish(
+                exchange: "",
+                routingKey: "document_queue",
+                basicProperties: null,
+                body: body
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"ERROR: Failed to send message: {ex.Message}");
+        }
     }
 }

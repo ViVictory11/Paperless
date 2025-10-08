@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Hosting;
 using Paperless.Contracts;
 using Paperless.DAL.Service.Services;
 using RabbitMQ.Client;
@@ -21,24 +22,34 @@ namespace Paperless.DAL.Service.Messaging
 
         public override Task StartAsync(CancellationToken cancellationToken)
         {
-            var host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "rabbitmq";
-            var user = Environment.GetEnvironmentVariable("RABBITMQ_USER") ?? "user";
-            var pass = Environment.GetEnvironmentVariable("RABBITMQ_PASS") ?? "pass";
-
-            var factory = new ConnectionFactory
+            try
             {
+                var host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "rabbitmq";
+                var user = Environment.GetEnvironmentVariable("RABBITMQ_USER") ?? "user";
+                var pass = Environment.GetEnvironmentVariable("RABBITMQ_PASS") ?? "pass";
+                
+                var factory = new ConnectionFactory
+                {
                 HostName = host,
                 UserName = user,
-                Password = pass
-            };
-
-            _connection = factory.CreateConnection();
-            _channel = _connection.CreateModel();
-
-            _channel.QueueDeclare(queue: _resultQueue, durable: false, exclusive: false, autoDelete: false);
-
-            Console.WriteLine($"Listening to result queue '{_resultQueue}' on host '{host}'");
-
+                Password = pass};
+                
+                _connection = factory.CreateConnection();
+                _channel = _connection.CreateModel();
+                
+                _channel.QueueDeclare(queue: _resultQueue, durable: false, exclusive: false, autoDelete: false);
+                
+                Console.WriteLine($"Listening to result queue '{_resultQueue}' on host '{host}'");
+            }
+            catch (RabbitMQ.Client.Exceptions.BrokerUnreachableException ex)
+            {
+                Console.WriteLine($"ERROR: RabbitMQ unreachable: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR: Failed to start OcrResultListener: {ex.Message}");
+            }
+            
             return base.StartAsync(cancellationToken);
         }
 
@@ -48,19 +59,31 @@ namespace Paperless.DAL.Service.Messaging
                 throw new InvalidOperationException("Channel not initialized.");
 
             var consumer = new EventingBasicConsumer(_channel);
+
             consumer.Received += (model, ea) =>
             {
-                var json = Encoding.UTF8.GetString(ea.Body.ToArray());
-                var message = JsonSerializer.Deserialize<OcrMessage>(json);
+                try
+                {
+                    var json = Encoding.UTF8.GetString(ea.Body.ToArray());
+                    var message = JsonSerializer.Deserialize<OcrMessage>(json);
 
-                if (message != null && !string.IsNullOrEmpty(message.OcrText))
-                {
-                    _resultStore.SaveResult(message.DocumentId, message.OcrText);
-                    Console.WriteLine($"Stored result for document {message.DocumentId}");
+                    if (message != null && !string.IsNullOrEmpty(message.OcrText))
+                    {
+                        _resultStore.SaveResult(message.DocumentId, message.OcrText);
+                        Console.WriteLine($"Stored result for document {message.DocumentId}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid or empty OCR result received.");
+                    }
                 }
-                else
+                catch (JsonException ex)
                 {
-                    Console.WriteLine("Invalid or empty OCR result.");
+                    Console.WriteLine($"ERROR: Invalid JSON received: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"ERROR: Unexpected error in message consumer: {ex.Message}");
                 }
             };
 
@@ -77,8 +100,16 @@ namespace Paperless.DAL.Service.Messaging
 
         public override void Dispose()
         {
-            _channel?.Dispose();
-            _connection?.Dispose();
+            try
+            {
+                _channel?.Dispose();
+                _connection?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR: Failed to dispose OcrResultListener: {ex.Message}");
+            }
+            
             base.Dispose();
         }
     }
