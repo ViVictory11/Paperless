@@ -162,6 +162,14 @@
             border-radius: 12px;
             background: white;
         }
+            .q-item strong {
+                display: inline-block;
+                max-width: 180px; 
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap; 
+                vertical-align: middle;
+            }
 
 
         .list {
@@ -179,6 +187,7 @@
             display: flex;
             gap: 12px;
             align-items: flex-start;
+            flex-wrap: wrap; 
             transition: transform .08s ease, box-shadow .08s ease;
         }
 
@@ -216,6 +225,17 @@
             padding: 3px 8px;
             background: #f3f4f6;
             border: 1px solid #eee
+        }
+
+        .ocr-result {
+            background: #f5f3ff;
+            border: 1px solid #e9d5ff;
+            border-radius: 10px;
+            padding: 6px 10px;
+            font-size: 13px;
+            color: #4c1d95;
+            margin-top: 8px;
+            white-space: pre-wrap;
         }
 
         .del {
@@ -273,6 +293,13 @@
             border: 1px dashed #e5e7eb;
             border-radius: 14px;
             background: #fff;
+        }
+
+        .doc .doc-link {
+            display: inline-block;
+            max-width: 200px; 
+            word-break: break-word; 
+            white-space: normal; 
         }
 
         a.doc-link {
@@ -435,7 +462,7 @@
                 card.setAttribute('data-id', doc.id);
                 card.innerHTML = `
               <button class="del" aria-label="Delete ${doc.fileName}">
-                <span aria-hidden="true">✕</span> Delete
+                <span aria-hidden="true">✕</span> 
               </button>
               <div class="icon">${extIcon(doc.fileName, doc.contentType)}</div>
               <div>
@@ -557,20 +584,60 @@
         startBtn.addEventListener('click', async () => {
             if (!queue.length) return;
 
-
             try {
                 const result = await uploadQueuedFiles();
                 toast(`Uploaded ${Array.isArray(result) ? result.length : queue.length} file(s)`);
+
+                queue.length = 0;
+                renderQueue();
+                await load();
+
+
+                if (Array.isArray(result) && result.length > 0) {
+                    for (const doc of result) {
+                        pollOcrResult(doc.id); 
+                    }
+                }
+
             } catch (err) {
                 console.error(err);
                 alert(err.message || 'Upload failed');
                 return;
             }
-
-            queue.length = 0;
-            renderQueue();
-            await load();
         });
+
+
+        async function pollOcrResult(docId) {
+            toast(`Waiting for OCR result`);
+
+            for (let i = 0; i < 30; i++) {
+                const res = await fetch(`/api/ocr/result/${docId}`);
+                if (res.status === 200) {
+                    const data = await res.json();
+                    toast(`OCR ready for ${docId.slice(0, 6)}`);
+
+                    const card = document.querySelector(`[data-id="${docId}"]`);
+                    if (card) {
+                        let div = card.querySelector('.ocr-result');
+                        if (!div) {
+                            div = document.createElement('div');
+                            div.className = 'ocr-result';
+                            div.style.marginTop = '8px';
+                            div.style.fontSize = '13px';
+                            div.style.color = '#4c1d95';
+                            card.appendChild(div);
+                        }
+                        div.textContent = data.ocrText || '(no OCR text)';
+                    }
+                    return;
+                }
+                await new Promise(r => setTimeout(r, 1000));
+            }
+
+            resultBox.textContent = `No OCR result received for ${docId.slice(0, 6)}`;
+        }
+
+
 
         load();
     </script>
