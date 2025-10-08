@@ -438,7 +438,7 @@
               <div class="empty">
                 <div style="font-weight:600">Connection error</div>
                 <div class="muted" style="margin-top:6px">${String(err)}</div>
-                <div class="muted" style="margin-top:6px">Is Docker Desktop / the API container running?</div>
+                <div class="muted" style="margin-top:6px">Is the API container running?</div>
               </div>`;
             } finally {
                 listEl.removeAttribute('aria-busy');
@@ -480,7 +480,7 @@
                     e.stopPropagation();
                     e.preventDefault();
                     const name = doc.fileName || 'this file';
-                    if (!confirm(`Delete \"${name}\"? This cannot be undone.`)) return;
+                    if (!confirm(`Delete \"${name}\"? This will be deleted foreverrrr.`)) return;
                     card.style.opacity = .6;
                     delBtn.disabled = true;
                     try {
