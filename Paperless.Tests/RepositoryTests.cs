@@ -5,7 +5,10 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Paperless.DAL.Service.Data;
+using Paperless.DAL.Service.Exceptions;
 using Paperless.DAL.Service.Models;
 using Paperless.DAL.Service.Repositories;
 using Xunit;
@@ -16,10 +19,10 @@ public class RepositoryTests : IDisposable
 {
     private readonly SqliteConnection _conn;
     private readonly DbContextOptions<AppDbContext> _options;
+    private readonly Mock<ILogger<DocumentRepository>> _loggerMock;
 
     public RepositoryTests()
     {
-   
         _conn = new SqliteConnection("DataSource=:memory:");
         _conn.Open();
 
@@ -29,20 +32,19 @@ public class RepositoryTests : IDisposable
 
         using var setup = new AppDbContext(_options);
         setup.Database.EnsureCreated();
+
+        _loggerMock = new Mock<ILogger<DocumentRepository>>();
     }
 
     private AppDbContext NewDb() => new AppDbContext(_options);
 
-    public void Dispose()
-    {
-        _conn.Dispose();
-    }
+    public void Dispose() => _conn.Dispose();
 
     [Fact]
     public async Task AddAsync_Saves_And_Returns_Entity()
     {
         using var db = NewDb();
-        var repo = new DocumentRepository(db);
+        var repo = new DocumentRepository(db, _loggerMock.Object);
         var now = DateTime.UtcNow;
 
         var entity = new DocumentEntity
@@ -65,7 +67,7 @@ public class RepositoryTests : IDisposable
     public async Task GetAsync_Returns_Null_When_Not_Found()
     {
         using var db = NewDb();
-        var repo = new DocumentRepository(db);
+        var repo = new DocumentRepository(db, _loggerMock.Object);
 
         var result = await repo.GetAsync(Guid.NewGuid());
 
@@ -76,7 +78,7 @@ public class RepositoryTests : IDisposable
     public async Task GetAllAsync_Returns_In_UploadedAt_Ascending_Order()
     {
         using var db = NewDb();
-        var repo = new DocumentRepository(db);
+        var repo = new DocumentRepository(db, _loggerMock.Object);
 
         var older = new DateTime(2022, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var newer = new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -97,7 +99,7 @@ public class RepositoryTests : IDisposable
     public async Task DeleteAsync_Removes_And_Returns_True()
     {
         using var db = NewDb();
-        var repo = new DocumentRepository(db);
+        var repo = new DocumentRepository(db, _loggerMock.Object);
         var id = Guid.NewGuid();
         db.Documents.Add(new DocumentEntity
         {
@@ -117,13 +119,11 @@ public class RepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task DeleteAsync_Returns_False_When_Not_Found()
+    public async Task DeleteAsync_Throws_When_Not_Found()
     {
         using var db = NewDb();
-        var repo = new DocumentRepository(db);
+        var repo = new DocumentRepository(db, _loggerMock.Object);
 
-        var removed = await repo.DeleteAsync(Guid.NewGuid());
-
-        removed.Should().BeFalse();
+        await Assert.ThrowsAsync<DataNotFoundException>(() => repo.DeleteAsync(Guid.NewGuid()));
     }
 }
