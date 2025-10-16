@@ -47,7 +47,7 @@ namespace Paperless.DAL.Service.Messaging
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ERROR: Failed to start OcrResultListener: {ex.Message}");
+                Console.WriteLine($"ERROR:Failed to start OcrResultListener: {ex.Message}");
             }
             
             return base.StartAsync(cancellationToken);
