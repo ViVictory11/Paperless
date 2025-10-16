@@ -81,8 +81,7 @@ namespace Paperless.DAL.Controllers
 
                 var created = new List<DocumentDto>();
 
-                static bool HasPdfExtension(string fileName) =>
-                    string.Equals(Path.GetExtension(fileName), ".pdf", StringComparison.OrdinalIgnoreCase);
+                static bool HasPdfExtension(string fileName) =>string.Equals(Path.GetExtension(fileName), ".pdf", StringComparison.OrdinalIgnoreCase);
 
                 static async Task<bool> LooksLikePdfAsync(IFormFile file, CancellationToken ct)
                 {
@@ -110,14 +109,15 @@ namespace Paperless.DAL.Controllers
                     var looksPdf = await LooksLikePdfAsync(file, ct);
 
                     if (!(hasPdfExt && looksPdf))
+                    {
                         return BadRequest($"{file.FileName}: Only PDF files are allowed.");
+                    }
 
                     var newId = Guid.NewGuid();
                     var storedName = $"{newId}.pdf";
                     var absPath = Path.Combine(uploadsAbs, storedName);
 
-                    using (var fs = new FileStream(absPath, FileMode.Create))
-                        await file.CopyToAsync(fs, ct);
+                    using (var fs = new FileStream(absPath, FileMode.Create)) await file.CopyToAsync(fs, ct);
 
                     var entity = new DocumentEntity
                     {
