@@ -1,45 +1,39 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Minio;
 using Paperless.OcrWorker;
 using Paperless.OcrWorker.Options;
+using Paperless.OcrWorker.FileStorage;
 
-var builder = Host.CreateApplicationBuilder(args);
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices((context, services) =>
+    {
+        services.Configure<MinioOptions>(opt =>
+        {
+            opt.Endpoint = Environment.GetEnvironmentVariable("MINIO_ENDPOINT") ?? "minio:9000";
+            opt.AccessKey = Environment.GetEnvironmentVariable("MINIO_ROOT_USER") ?? "minioadmin";
+            opt.SecretKey = Environment.GetEnvironmentVariable("MINIO_ROOT_PASSWORD") ?? "minioadmin";
+            opt.BucketName = "documents";
+            opt.UseSSL = false;
+        });
 
+        services.AddSingleton<IMinioClient>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<MinioOptions>>().Value;
+            return new MinioClient()
+                .WithEndpoint(options.Endpoint)
+                .WithCredentials(options.AccessKey, options.SecretKey)
+                .WithSSL(options.UseSSL)
+                .Build();
+        });
 
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
+        services.AddSingleton<IDocumentStorage, MinioDocumentStorage>();
 
-var logger = LoggerFactory.Create(config =>
-{
-    config.AddConsole();
-    config.AddDebug();
-}).CreateLogger("OcrWorker");
+        services.AddHostedService<Worker>();
+    })
+    .Build();
 
-logger.LogInformation("Initializing Paperless.OcrWorker...");
-
-builder.Services.AddHostedService<Worker>();
-
-
-builder.Services.Configure<MinioOptions>(builder.Configuration.GetSection("Minio"));
-
-builder.Services.AddSingleton(sp =>
-{
-    var opt = sp.GetRequiredService<IOptions<MinioOptions>>().Value;
-    var client = new MinioClient()
-        .WithEndpoint(opt.Endpoint)
-        .WithCredentials(opt.AccessKey, opt.SecretKey);
-    if (opt.UseSSL)
-        client = client.WithSSL();
-    return client.Build();
-});
-
-logger.LogInformation("MinIO client configured for endpoint {Endpoint}.",
-    builder.Configuration["Minio:Endpoint"] ?? "(none)");
-
-var host = builder.Build();
-
-logger.LogInformation("Paperless.OcrWorker started.");
 await host.RunAsync();

@@ -6,12 +6,15 @@ using System.Threading.Tasks;
 
 namespace Paperless.OcrWorker.Options
 {
-    public sealed record MinioOptions(
-        string Endpoint,
-        string AccessKey,
-        string SecretKey,
-        string BucketName,
-        bool UseSSL,
-        int PresignExpirySeconds = 3600);
-}
+    public class MinioOptions
+    {
+        public string Endpoint { get; set; } = string.Empty;
+        public string AccessKey { get; set; } = string.Empty;
+        public string SecretKey { get; set; } = string.Empty;
+        public string BucketName { get; set; } = string.Empty;
+        public bool UseSSL { get; set; } = false;
+        public int PresignExpirySeconds { get; set; } = 3600;
 
+        public MinioOptions() { }
+    }
+}
