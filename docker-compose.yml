@@ -7,6 +7,12 @@ services:
       ASPNETCORE_ENVIRONMENT: "Development"
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
       ConnectionStrings__Default: "Host=postgres;Port=5432;Database=paperless;Username=postgres;Password=postgres"
+      MINIO__ENDPOINT: "minio:9000"
+      MINIO__ACCESSKEY: "minioadmin"
+      MINIO__SECRETKEY: "minioadmin"
+      MINIO__BUCKETNAME: "documents"
+      MINIO__USESSL: "false"
+      MINIO__PRESIGNEXPIRYSECONDS: "3600"
     ports:
       - "8080:8080"
     depends_on:
@@ -71,14 +77,22 @@ services:
       RABBITMQ_USER: user
       RABBITMQ_PASS: pass
       RABBITMQ_QUEUE: document_queue
+      MINIO__ENDPOINT: "minio:9000"
+      MINIO__ACCESSKEY: "minioadmin"
+      MINIO__SECRETKEY: "minioadmin"
+      MINIO__BUCKETNAME: "documents"
+      MINIO__USESSL: "false"
+      MINIO__PRESIGNEXPIRYSECONDS: "3600"
+    volumes:
+      - ./tessdata:/app/tessdata
     restart: unless-stopped
 
   minio:
     image: minio/minio
     container_name: minio
     ports:
-      - "9000 : 9000"
-      - "9001 : 9001"
+      - "9000:9000"
+      - "9001:9001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin

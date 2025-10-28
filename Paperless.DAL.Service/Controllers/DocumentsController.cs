@@ -8,6 +8,7 @@ using Paperless.DAL.Service.Services;
 using Paperless.DAL.Service.Exceptions;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Paperless.DAL.Service.Services.FileStorage;
 
 namespace Paperless.DAL.Controllers
 {
@@ -19,14 +20,16 @@ namespace Paperless.DAL.Controllers
         private readonly IMapper _mapper;
         private readonly IRabbitMqService _rabbitMqService;
         private readonly ILogger<DocumentsController> _logger;
+        private readonly IDocumentStorage _storage;
 
 
-        public DocumentsController(IDocumentRepository repo, IMapper mapper, IRabbitMqService rabbitMqService, ILogger<DocumentsController> logger)
+        public DocumentsController(IDocumentRepository repo, IMapper mapper, IRabbitMqService rabbitMqService, ILogger<DocumentsController> logger, IDocumentStorage storage)
         {
             _repo = repo;
             _mapper = mapper;
             _rabbitMqService = rabbitMqService;
             _logger = logger;
+            _storage = storage;
         }
 
 
@@ -146,11 +149,13 @@ namespace Paperless.DAL.Controllers
 
                     var newId = Guid.NewGuid();
                     var storedName = $"{newId}.pdf";
-                    var absPath = Path.Combine(uploadsAbs, storedName);
 
-                    using (var fs = new FileStream(absPath, FileMode.Create)) await file.CopyToAsync(fs, ct);
-
-                    _logger.LogInformation("File {FileName} saved as {StoredName}.", file.FileName, storedName);
+                    _logger.LogInformation("Uploading {FileName} to MinIO...", file.FileName);
+                    await using (var stream = file.OpenReadStream())
+                    {
+                        await _storage.UploadAsync(stream, storedName, "application/pdf");
+                    }
+                    _logger.LogInformation("Uploaded {FileName} to MinIO as {StoredName}.", file.FileName, storedName);
 
                     var entity = new DocumentEntity
                     {
@@ -167,8 +172,9 @@ namespace Paperless.DAL.Controllers
                     var ocrMsg = new OcrMessage
                     {
                         DocumentId = entity.Id.ToString(),
-                        FilePath = absPath
+                        ObjectName = storedName
                     };
+
 
                     _rabbitMqService.SendMessage(JsonSerializer.Serialize(ocrMsg));
                     _logger.LogInformation("OCR message sent for document {Id}.", entity.Id);

@@ -6,7 +6,11 @@ using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
 using Paperless.DAL.Service;
 using Paperless.DAL.Service.Messaging;
-using Paperless.DAL.Service.Services;      
+using Paperless.DAL.Service.Services;
+using Paperless.DAL.Service.Services.FileStorage;
+using Paperless.DAL.Service.Options;
+using Microsoft.Extensions.Options;
+using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +44,19 @@ builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
 builder.Services.AddSingleton<IOcrResult, OcrResult>();
 builder.Services.AddHostedService<OcrResultListener>();
 
+builder.Services.Configure<MinioOptions>(builder.Configuration.GetSection("Minio"));
+
+builder.Services.AddSingleton<IMinioClient>(sp =>
+{
+    var opt = sp.GetRequiredService<IOptions<MinioOptions>>().Value;
+    var client = new MinioClient()
+        .WithEndpoint(opt.Endpoint)
+        .WithCredentials(opt.AccessKey, opt.SecretKey);
+    if (opt.UseSSL) client = client.WithSSL();
+    return client.Build();
+});
+
+builder.Services.AddSingleton<IDocumentStorage, MinioDocumentStorage>();
 
 var app = builder.Build();
 
@@ -53,11 +70,28 @@ try
         logger.LogInformation("Running database migrations...");
         db.Database.Migrate();
         logger.LogInformation("Database migrations completed successfully.");
+
+        var client = scope.ServiceProvider.GetRequiredService<IMinioClient>();
+        var opt = scope.ServiceProvider.GetRequiredService<IOptions<MinioOptions>>().Value;
+
+        logger.LogInformation("Checking if MinIO bucket '{Bucket}' exists...", opt.BucketName);
+        bool exists = await client.BucketExistsAsync(
+            new Minio.DataModel.Args.BucketExistsArgs().WithBucket(opt.BucketName));
+        if (!exists)
+        {
+            await client.MakeBucketAsync(
+                new Minio.DataModel.Args.MakeBucketArgs().WithBucket(opt.BucketName));
+            logger.LogInformation("Created new MinIO bucket '{Bucket}'.", opt.BucketName);
+        }
+        else
+        {
+            logger.LogInformation("MinIO bucket '{Bucket}' already exists.", opt.BucketName);
+        }
     }
 }
 catch (Exception ex)
 {
-    logger.LogCritical(ex, "Database migration failed. Application startup aborted.");
+    logger.LogCritical(ex, "Startup initialization failed (DB or MinIO).");
     throw;
 }
 

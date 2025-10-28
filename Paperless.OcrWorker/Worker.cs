@@ -5,20 +5,23 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
+using Paperless.OcrWorker.FileStorage;
 
 namespace Paperless.OcrWorker
 {
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
+        private readonly IDocumentStorage _storage;  // <-- add this
         private IConnection? _connection;
         private IModel? _channel;
         private string _requestQueue = "document_queue";
         private string _resultQueue = "result_queue";
 
-        public Worker(ILogger<Worker> logger)
+        public Worker(ILogger<Worker> logger, IDocumentStorage storage)
         {
             _logger = logger;
+            _storage = storage;
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)
@@ -78,8 +81,17 @@ namespace Paperless.OcrWorker
 
                     _logger.LogInformation("Processing OCR job for DocumentId: {Id}", message.DocumentId);
 
+                    var tmpFile = Path.Combine(Path.GetTempPath(), $"{message.DocumentId}.pdf");
+                    await using (var stream = await _storage.DownloadAsync(message.ObjectName))
+                    await using (var fileStream = File.Create(tmpFile))
+                    {
+                        await stream.CopyToAsync(fileStream, stoppingToken);
+                    }
+
+                    _logger.LogInformation("Downloaded document {Id} to {Path}", message.DocumentId, tmpFile);
+
                     await Task.Delay(1500, stoppingToken);
-                    message.OcrText = "OCR result: Lorem ipsum blabla irgendwas fake result blablabla";
+                    message.OcrText = $"OCR result for {message.DocumentId}: fake text blabla";
 
                     var resultJson = JsonSerializer.Serialize(message);
                     var body = Encoding.UTF8.GetBytes(resultJson);
