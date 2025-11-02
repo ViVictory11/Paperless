@@ -4,13 +4,15 @@ using Paperless.DAL.Service.Profiles;
 using Paperless.DAL.Service.Repositories;
 using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Paperless.DAL.Service;
 using Paperless.DAL.Service.Messaging;
 using Paperless.DAL.Service.Services;
 using Paperless.DAL.Service.Services.FileStorage;
 using Paperless.DAL.Service.Options;
-using Microsoft.Extensions.Options;
 using Minio;
+using Minio.DataModel.Args;
+using Minio.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,19 +46,7 @@ builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
 builder.Services.AddSingleton<IOcrResult, OcrResult>();
 builder.Services.AddHostedService<OcrResultListener>();
 
-builder.Services.Configure<MinioOptions>(builder.Configuration.GetSection("Minio"));
-
-builder.Services.AddSingleton<IMinioClient>(sp =>
-{
-    var opt = sp.GetRequiredService<IOptions<MinioOptions>>().Value;
-    var client = new MinioClient()
-        .WithEndpoint(opt.Endpoint)
-        .WithCredentials(opt.AccessKey, opt.SecretKey);
-    if (opt.UseSSL) client = client.WithSSL();
-    return client.Build();
-});
-
-builder.Services.AddSingleton<IDocumentStorage, MinioDocumentStorage>();
+builder.Services.AddMinioStorage(builder.Configuration);
 
 var app = builder.Build();
 

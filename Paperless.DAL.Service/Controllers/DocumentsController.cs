@@ -148,14 +148,14 @@ namespace Paperless.DAL.Controllers
                     }
 
                     var newId = Guid.NewGuid();
-                    var storedName = $"{newId}.pdf";
+                    var objectName = $"{newId}.pdf";
 
                     _logger.LogInformation("Uploading {FileName} to MinIO...", file.FileName);
                     await using (var stream = file.OpenReadStream())
                     {
-                        await _storage.UploadAsync(stream, storedName, "application/pdf");
+                        await _storage.UploadAsync(stream, objectName, "application/pdf");
                     }
-                    _logger.LogInformation("Uploaded {FileName} to MinIO as {StoredName}.", file.FileName, storedName);
+                    _logger.LogInformation("Uploaded {FileName} to MinIO as {ObjectName}.", file.FileName, objectName);
 
                     var entity = new DocumentEntity
                     {
@@ -172,7 +172,7 @@ namespace Paperless.DAL.Controllers
                     var ocrMsg = new OcrMessage
                     {
                         DocumentId = entity.Id.ToString(),
-                        ObjectName = storedName
+                        ObjectName = objectName
                     };
 
 
@@ -214,16 +214,35 @@ namespace Paperless.DAL.Controllers
         public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
             _logger.LogInformation("DELETE /api/documents/{Id} called.", id);
+
             try
             {
-                var success = await _repo.DeleteAsync(id, ct);
-                if (!success)
+                var document = await _repo.GetAsync(id, ct);
+                if (document == null)
                 {
                     _logger.LogWarning("Delete failed: document {Id} not found.", id);
                     return NotFound();
                 }
 
-                _logger.LogInformation("Document {Id} deleted successfully.", id);
+                try
+                {
+                    var objectName = $"{document.Id}.pdf";
+                    await _storage.DeleteAsync(objectName);
+                    _logger.LogInformation("Deleted MinIO file '{Object}' for document {Id}.", objectName, id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to delete MinIO file for document {Id}.", id);
+                }
+
+                var success = await _repo.DeleteAsync(id, ct);
+                if (!success)
+                {
+                    _logger.LogWarning("Delete failed in repository for document {Id}.", id);
+                    return NotFound();
+                }
+
+                _logger.LogInformation("Document {Id} deleted successfully from DB and MinIO.", id);
                 return NoContent();
             }
             catch (RepositoryException ex)
@@ -237,6 +256,7 @@ namespace Paperless.DAL.Controllers
                 return StatusCode(500, new { message = $"Unexpected error: {ex.Message}" });
             }
         }
+
 
         //Das ist damit abgefragt wird, ob ein result da ist
         [HttpGet("/api/ocr/result/{id}")]
