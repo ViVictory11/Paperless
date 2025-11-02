@@ -211,12 +211,15 @@ namespace Paperless.DAL.Controllers
             _logger.LogInformation("DELETE /api/documents/{Id} called.", id);
             try
             {
-                var success = await _repo.DeleteAsync(id, ct);
-                if (!success)
+                var doc = await _repo.GetAsync(id, ct);
+                if (doc == null)
                 {
                     _logger.LogWarning("Delete failed: document {Id} not found.", id);
                     return NotFound();
                 }
+
+                await _storage.DeleteAsync(doc.ObjectName); 
+                var success = await _repo.DeleteAsync(id, ct); 
 
                 _logger.LogInformation("Document {Id} deleted successfully.", id);
                 return NoContent();

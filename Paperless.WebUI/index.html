@@ -496,6 +496,7 @@
                   </div>
                 `;
                 const ocrBtn = card.querySelector('[data-ocr]');
+                const delBtn = card.querySelector('.del');
                 listEl.appendChild(card);
                 ocrBtn.addEventListener('click', async () => {
                     ocrBtn.disabled = true;
@@ -518,6 +519,20 @@
                         ocrResultText.textContent = 'OCR failed.';
                     } finally {
                         ocrBtn.disabled = false;
+                    }
+                });
+
+                delBtn.addEventListener('click', async () => {
+                    if (!confirm(`Delete document ${doc.fileName}?`)) return;
+                    try {
+                        await apiDeleteDocument(doc.id);
+                        toast(`Deleted ${doc.fileName}`);
+                        card.remove();         
+                        updateCount();   
+                        resetOcrResult();
+                    } catch (err) {
+                        console.error(err);
+                        alert(`Failed to delete: ${err.message}`);
                     }
                 });
 
@@ -571,7 +586,7 @@
                 `;
                 row.querySelector('[data-remove]').addEventListener('click', () => {
                     const idx = queue.findIndex(q => q.id === item.id);
-                    if (idx >= 0) { queue.splice(idx, 1); renderQueue(); }
+                    if (idx >= 0) { queue.splice(idx, 1); renderQueue(); fileInput.value = ''; }
                 });
                 queueEl.appendChild(row);
             }
@@ -665,6 +680,11 @@
             ocrResultText.textContent = `Kein OCR-Ergebnis für ${fileName} erhalten (Timeout nach 5 Minuten).`;
             toast(`OCR timeout for ${fileName}`);
         }
+
+        function resetOcrResult() {
+            ocrResultText.textContent = 'Kein OCR Request';
+        }
+
 
 
         load();
