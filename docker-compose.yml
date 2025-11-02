@@ -83,8 +83,6 @@ services:
       MINIO__BUCKETNAME: "documents"
       MINIO__USESSL: "false"
       MINIO__PRESIGNEXPIRYSECONDS: "3600"
-    volumes:
-      - ./tessdata:/app/tessdata
     restart: unless-stopped
 
   minio:

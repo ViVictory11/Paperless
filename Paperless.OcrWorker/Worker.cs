@@ -6,20 +6,23 @@ using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
 using Paperless.OcrWorker.FileStorage;
+using Paperless.OcrWorker.Services;
 
 namespace Paperless.OcrWorker
 {
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
-        private readonly IDocumentStorage _storage;  // <-- add this
+        private readonly IDocumentStorage _storage;
+        private readonly OCRService _ocrService;
         private IConnection? _connection;
         private IModel? _channel;
         private string _requestQueue = "document_queue";
         private string _resultQueue = "result_queue";
 
-        public Worker(ILogger<Worker> logger, IDocumentStorage storage)
+        public Worker(OCRService ocrService, ILogger<Worker> logger, IDocumentStorage storage)
         {
+            _ocrService = ocrService;
             _logger = logger;
             _storage = storage;
         }
@@ -90,11 +93,13 @@ namespace Paperless.OcrWorker
 
                     _logger.LogInformation("Downloaded document {Id} to {Path}", message.DocumentId, tmpFile);
 
-                    await Task.Delay(1500, stoppingToken);
-                    message.OcrText = $"OCR result for {message.DocumentId}: fake text blabla";
+                    var ocrText = await _ocrService.RunOcrAsync(message.ObjectName);
+                    _logger.LogInformation($"OCR extracted {ocrText.Length} chars for {message.ObjectName}");
+                    message.OcrText = ocrText;
 
                     var resultJson = JsonSerializer.Serialize(message);
                     var body = Encoding.UTF8.GetBytes(resultJson);
+                    _logger.LogInformation("Sending OCR JSON: " + resultJson);
 
                     _channel.BasicPublish(
                         exchange: "",
@@ -102,6 +107,7 @@ namespace Paperless.OcrWorker
                         basicProperties: null,
                         body: body
                     );
+
 
                     _logger.LogInformation("Sent OCR result for DocumentId: {Id}", message.DocumentId);
                 }
