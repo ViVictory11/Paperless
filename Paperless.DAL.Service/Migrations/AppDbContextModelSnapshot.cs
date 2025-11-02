@@ -38,6 +38,10 @@ namespace Paperless.DAL.Service.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<string>("ObjectName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<long>("SizeBytes")
                         .HasColumnType("bigint");
 

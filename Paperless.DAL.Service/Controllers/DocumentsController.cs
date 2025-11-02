@@ -9,6 +9,7 @@ using Paperless.DAL.Service.Exceptions;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Paperless.DAL.Service.Services.FileStorage;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 
 namespace Paperless.DAL.Controllers
 {
@@ -148,19 +149,20 @@ namespace Paperless.DAL.Controllers
                     }
 
                     var newId = Guid.NewGuid();
-                    var objectName = $"{newId}.pdf";
+                    var storedName = $"{newId}.pdf";
 
                     _logger.LogInformation("Uploading {FileName} to MinIO...", file.FileName);
                     await using (var stream = file.OpenReadStream())
                     {
-                        await _storage.UploadAsync(stream, objectName, "application/pdf");
+                        await _storage.UploadAsync(stream, storedName, "application/pdf");
                     }
-                    _logger.LogInformation("Uploaded {FileName} to MinIO as {ObjectName}.", file.FileName, objectName);
+                    _logger.LogInformation("Uploaded {FileName} to MinIO as {StoredName}.", file.FileName, storedName);
 
                     var entity = new DocumentEntity
                     {
                         Id = newId,
                         FileName = file.FileName,
+                        ObjectName = storedName,
                         ContentType = "application/pdf",
                         SizeBytes = file.Length,
                         UploadedAt = DateTime.UtcNow
@@ -169,15 +171,8 @@ namespace Paperless.DAL.Controllers
                     entity = await _repo.AddAsync(entity, ct);
                     created.Add(_mapper.Map<DocumentDto>(entity));
 
-                    var ocrMsg = new OcrMessage
-                    {
-                        DocumentId = entity.Id.ToString(),
-                        ObjectName = objectName
-                    };
+                    _logger.LogInformation("Document {Id} uploaded – OCR not triggered automatically.", entity.Id);
 
-
-                    _rabbitMqService.SendMessage(JsonSerializer.Serialize(ocrMsg));
-                    _logger.LogInformation("OCR message sent for document {Id}.", entity.Id);
                 }
 
                 _logger.LogInformation("Upload completed: {Count} file(s) processed successfully.", created.Count);
@@ -214,35 +209,16 @@ namespace Paperless.DAL.Controllers
         public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
             _logger.LogInformation("DELETE /api/documents/{Id} called.", id);
-
             try
             {
-                var document = await _repo.GetAsync(id, ct);
-                if (document == null)
+                var success = await _repo.DeleteAsync(id, ct);
+                if (!success)
                 {
                     _logger.LogWarning("Delete failed: document {Id} not found.", id);
                     return NotFound();
                 }
 
-                try
-                {
-                    var objectName = $"{document.Id}.pdf";
-                    await _storage.DeleteAsync(objectName);
-                    _logger.LogInformation("Deleted MinIO file '{Object}' for document {Id}.", objectName, id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to delete MinIO file for document {Id}.", id);
-                }
-
-                var success = await _repo.DeleteAsync(id, ct);
-                if (!success)
-                {
-                    _logger.LogWarning("Delete failed in repository for document {Id}.", id);
-                    return NotFound();
-                }
-
-                _logger.LogInformation("Document {Id} deleted successfully from DB and MinIO.", id);
+                _logger.LogInformation("Document {Id} deleted successfully.", id);
                 return NoContent();
             }
             catch (RepositoryException ex)
@@ -256,7 +232,6 @@ namespace Paperless.DAL.Controllers
                 return StatusCode(500, new { message = $"Unexpected error: {ex.Message}" });
             }
         }
-
 
         //Das ist damit abgefragt wird, ob ein result da ist
         [HttpGet("/api/ocr/result/{id}")]
@@ -279,6 +254,48 @@ namespace Paperless.DAL.Controllers
             {
                 _logger.LogError(ex, "Unexpected error in GetOcrResult for document {Id}.", id);
                 return StatusCode(500, new { message = $"Unexpected error: {ex.Message}" });
+            }
+        }
+
+        [HttpPost("/api/ocr/run/{id}")]
+        public async Task<IActionResult> TriggerOcr(Guid id, [FromQuery] string lang = "deu+eng", CancellationToken ct = default)
+        {
+            _logger.LogInformation("POST /api/ocr/run/{Id} triggered.", id);
+
+            try
+            {
+                var doc = await _repo.GetAsync(id, ct);
+                if (doc == null)
+                {
+                    _logger.LogWarning("Document with ID {Id} not found.", id);
+                    return NotFound();
+                }
+
+                if (string.IsNullOrWhiteSpace(doc.ObjectName))
+                {
+                    _logger.LogWarning("OCR trigger failed: ObjectName is empty for document {Id}", id);
+                    return StatusCode(500, new { message = "Document is missing ObjectName for OCR." });
+                }
+
+                var ocrMsg = new OcrMessage
+                {
+                    DocumentId = doc.Id.ToString(),
+                    ObjectName = doc.ObjectName,
+                    Language = lang
+                };
+
+
+                var json = JsonSerializer.Serialize(ocrMsg);
+                _rabbitMqService.SendMessage(json);
+
+                _logger.LogInformation("OCR message sent for document {Id}.", id);
+
+                return Accepted();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send OCR message for document {Id}.", id);
+                return StatusCode(500, new { message = ex.Message });
             }
         }
 
