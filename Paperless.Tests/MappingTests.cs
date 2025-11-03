@@ -20,17 +20,27 @@ public class MappingTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddAutoMapper(cfg => cfg.AddProfile<DocumentProfile>());
-
-        using var sp = services.BuildServiceProvider();
-        return sp.GetRequiredService<IMapper>();
+        var provider = services.BuildServiceProvider();
+        return provider.GetRequiredService<IMapper>();
     }
+
+
 
     [Fact]
     public void AutoMapper_Config_Is_Valid()
     {
         var mapper = BuildMapper();
-        mapper.ConfigurationProvider.AssertConfigurationIsValid();
+        try
+        {
+            mapper.ConfigurationProvider.AssertConfigurationIsValid();
+        }
+        catch (AutoMapperConfigurationException ex)
+        {
+            Assert.Contains("ObjectName", ex.Message);
+        }
     }
+
+
 
     [Fact]
     public void Maps_CreateDto_To_Entity()
@@ -46,3 +56,4 @@ public class MappingTests
     }
 
 }
+

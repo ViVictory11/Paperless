@@ -18,7 +18,7 @@ namespace Paperless.OcrWorker.Services
             _logger = logger;
         }
 
-        public async Task<string> RunOcrAsync(string objectName, string lang = "deu+eng")
+        public virtual async Task<string> RunOcrAsync(string objectName, string lang = "deu+eng")
         {
             var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             Directory.CreateDirectory(tempDir);

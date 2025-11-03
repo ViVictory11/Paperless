@@ -29,6 +29,7 @@
     <ProjectReference Include="..\Paperless.DAL.Service\Paperless.DAL.Service.csproj" />
     <ProjectReference Include="..\PaperlessProject\PaperlessProject.csproj" />
     <ProjectReference Include="..\Paperless.Contracts\Paperless.Contracts.csproj" />
+	<ProjectReference Include="..\Paperless.OcrWorker\Paperless.OcrWorker.csproj" />
   </ItemGroup>
 
   <ItemGroup>
