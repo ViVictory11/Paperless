@@ -13,7 +13,7 @@ namespace Paperless.OcrWorker
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
-        private readonly IDocumentStorage _storage;
+        //private readonly IDocumentStorage _storage;
         private readonly OCRService _ocrService;
         private IConnection? _connection;
         private IModel? _channel;
@@ -24,7 +24,7 @@ namespace Paperless.OcrWorker
         {
             _ocrService = ocrService;
             _logger = logger;
-            _storage = storage;
+            //_storage = storage;
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)
@@ -84,14 +84,14 @@ namespace Paperless.OcrWorker
 
                     _logger.LogInformation("Processing OCR job for DocumentId: {Id}", message.DocumentId);
 
-                    var tmpFile = Path.Combine(Path.GetTempPath(), $"{message.DocumentId}.pdf");
+                    /*var tmpFile = Path.Combine(Path.GetTempPath(), $"{message.DocumentId}.pdf");
                     await using (var stream = await _storage.DownloadAsync(message.ObjectName))
                     await using (var fileStream = File.Create(tmpFile))
                     {
                         await stream.CopyToAsync(fileStream, stoppingToken);
                     }
 
-                    _logger.LogInformation("Downloaded document {Id} to {Path}", message.DocumentId, tmpFile);
+                    _logger.LogInformation("Downloaded document {Id} to {Path}", message.DocumentId, tmpFile);*/
 
                     var ocrText = await _ocrService.RunOcrAsync(message.ObjectName);
                     _logger.LogInformation($"OCR extracted {ocrText.Length} chars for {message.ObjectName}");

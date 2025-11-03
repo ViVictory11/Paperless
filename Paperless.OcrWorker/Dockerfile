@@ -12,7 +12,6 @@ RUN apt-get update && \
         libmagickwand-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# ✅ Tesseract sucht nach /app/tessdata/<lang>.traineddata
 ENV TESSDATA_PREFIX=/app
 
 RUN ln -s /usr/lib/x86_64-linux-gnu/libdl.so.2 /usr/lib/x86_64-linux-gnu/libdl.so
@@ -27,7 +26,6 @@ WORKDIR /src
 COPY ["Paperless.OcrWorker/Paperless.OcrWorker.csproj", "Paperless.OcrWorker/"]
 RUN dotnet restore "Paperless.OcrWorker/Paperless.OcrWorker.csproj"
 
-# 📦 Jetzt das komplette Projekt inkl. tessdata kopieren
 COPY . .
 
 WORKDIR "/src/Paperless.OcrWorker"
@@ -36,11 +34,9 @@ RUN dotnet publish "Paperless.OcrWorker.csproj" -c Release -o /app/publish /p:Us
 FROM base AS final
 WORKDIR /app
 
-# 🧩 Hier der Fix — kopiere aus /src/Paperless.OcrWorker/bin/publish UND tessdata aus dem Build-Context
 COPY --from=build /app/publish .
 COPY --from=build /src/Paperless.OcrWorker/tessdata ./tessdata
 
-# Sicherheitshalber nochmals setzen
 ENV TESSDATA_PREFIX=/app
 
 ENTRYPOINT ["dotnet", "Paperless.OcrWorker.dll"]

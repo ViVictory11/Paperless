@@ -495,20 +495,20 @@
 
                   </div>
                 `;
+
+                //----------------------------------------------------------------------------------OCR---------------------------------------------------------------------------
                 const ocrBtn = card.querySelector('[data-ocr]');
                 const delBtn = card.querySelector('.del');
                 listEl.appendChild(card);
-                ocrBtn.addEventListener('click', async () => {
-                    ocrBtn.disabled = true;
-                    toast(`Running OCR for ${doc.fileName}`);
 
+                ocrBtn.addEventListener('click', async () => {ocrBtn.disabled = true; toast(`Running OCR for ${doc.fileName}`);
                     ocrResultText.textContent = 'OCR loading...';
 
                     try {
                         const res = await fetch(`/api/ocr/run/${doc.id}`, { method: 'POST' });
 
                         if (!res.ok && res.status !== 202)
-                            throw new Error(`OCR start failed (${res.status})`);
+                            throw new Error(`OCR star failed (${res.status})`);
 
                         toast(`OCR job started for ${doc.fileName}`);
 
@@ -521,7 +521,7 @@
                         ocrBtn.disabled = false;
                     }
                 });
-
+                //-------------------------------------------------------------------------------------------------------------------------------------------------------------
                 delBtn.addEventListener('click', async () => {
                     if (!confirm(`Delete document ${doc.fileName}?`)) return;
                     try {
@@ -641,11 +641,11 @@
             }
         });
 
-
+        //-------------------------------------------------------------------------------------------OCR----------------------------------------------------------------------------
         async function pollOcrResult(docId, fileName) {
             ocrResultText.textContent = "OCR läuft, bitte warten…";
             const pollIntervalMs = 2000; 
-            const maxDurationMs = 5 * 60 * 1000; 
+            const maxDurationMs = 5 * 60 * 1000; //Wir pollen 5 Minuten lang (weil OCR manchmal lang dauert)
             const startTime = Date.now();
 
             while (Date.now() - startTime < maxDurationMs) {
@@ -680,7 +680,7 @@
             ocrResultText.textContent = `Kein OCR-Ergebnis für ${fileName} erhalten (Timeout nach 5 Minuten).`;
             toast(`OCR timeout for ${fileName}`);
         }
-
+        //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
         function resetOcrResult() {
             ocrResultText.textContent = 'Kein OCR Request';
         }

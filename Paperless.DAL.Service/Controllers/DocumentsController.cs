@@ -236,6 +236,8 @@ namespace Paperless.DAL.Controllers
             }
         }
 
+
+        //-------------------------------------------------------------------------------------OCR------------------------------------------------------------------------------
         //Das ist damit abgefragt wird, ob ein result da ist
         [HttpGet("/api/ocr/result/{id}")]
         public IActionResult GetOcrResult(Guid id, [FromServices] IOcrResult ocrStore)
@@ -259,6 +261,8 @@ namespace Paperless.DAL.Controllers
                 return StatusCode(500, new { message = $"Unexpected error: {ex.Message}" });
             }
         }
+
+        //-------------------------------------------------------------------------------------OCR------------------------------------------------------------------------------
 
         [HttpPost("/api/ocr/run/{id}")]
         public async Task<IActionResult> TriggerOcr(Guid id, [FromQuery] string lang = "deu+eng", CancellationToken ct = default)
