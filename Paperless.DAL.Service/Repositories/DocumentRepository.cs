@@ -3,6 +3,7 @@ using Paperless.DAL.Service.Data;
 using Paperless.DAL.Service.Models;
 using Paperless.DAL.Service.Exceptions;
 using Microsoft.Extensions.Logging;
+using Polly;
 
 namespace Paperless.DAL.Service.Repositories;
 public class DocumentRepository : IDocumentRepository
@@ -122,4 +123,16 @@ public class DocumentRepository : IDocumentRepository
             throw new RepositoryException("Unexpected error in DeleteAsync.", ex);
         }
     }
+
+    public async Task SaveSummaryAsync(Guid documentId, string summary)
+    {
+        var doc = await _db.Documents.FindAsync(documentId);
+        if (doc != null)
+        {
+            doc.Summary = summary;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+
 }

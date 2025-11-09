@@ -171,7 +171,19 @@ namespace Paperless.DAL.Controllers
                     entity = await _repo.AddAsync(entity, ct);
                     created.Add(_mapper.Map<DocumentDto>(entity));
 
-                    _logger.LogInformation("Document {Id} uploaded – OCR not triggered automatically.", entity.Id);
+                    _logger.LogInformation("Triggering OCR automatically for {Id}", entity.Id);
+
+                    var ocrMsg = new OcrMessage
+                    {
+                        DocumentId = entity.Id.ToString(),
+                        ObjectName = entity.ObjectName,
+                        Language = "deu+eng"
+                    };
+
+                    var json = JsonSerializer.Serialize(ocrMsg);
+                    _rabbitMqService.SendMessage(json);
+                    _logger.LogInformation("OCR message sent for {Id}", entity.Id);
+
 
                 }
 
@@ -240,7 +252,7 @@ namespace Paperless.DAL.Controllers
         //-------------------------------------------------------------------------------------OCR------------------------------------------------------------------------------
         //Das ist damit abgefragt wird, ob ein result da ist
         [HttpGet("/api/ocr/result/{id}")]
-        public IActionResult GetOcrResult(Guid id, [FromServices] IOcrResult ocrStore)
+        public async Task<IActionResult> GetOcrResult(Guid id, [FromServices] IOcrResult ocrStore)
         {
             _logger.LogInformation("GET /api/ocr/result/{Id} called.", id);
             try
@@ -253,7 +265,15 @@ namespace Paperless.DAL.Controllers
                 }
 
                 _logger.LogInformation("Returning OCR result for document {Id}.", id);
-                return Ok(new { ocrText = result });
+                var doc = await _repo.GetAsync(id);
+                var summary = doc?.Summary;
+
+                return Ok(new
+                {
+                    ocrText = result,
+                    summary = summary
+                });
+
             }
             catch (Exception ex)
             {
@@ -275,7 +295,7 @@ namespace Paperless.DAL.Controllers
                 if (doc == null)
                 {
                     _logger.LogWarning("Document with ID {Id} not found.", id);
-                    return NotFound();
+                    return NotFound(new { message = $"Document {id} not found." });
                 }
 
                 if (string.IsNullOrWhiteSpace(doc.ObjectName))
@@ -284,20 +304,29 @@ namespace Paperless.DAL.Controllers
                     return StatusCode(500, new { message = "Document is missing ObjectName for OCR." });
                 }
 
+                bool summaryExists = !string.IsNullOrWhiteSpace(doc.Summary);
+
                 var ocrMsg = new OcrMessage
                 {
                     DocumentId = doc.Id.ToString(),
                     ObjectName = doc.ObjectName,
-                    Language = lang
+                    Language = lang,
+                    IsSummaryAllowed = !summaryExists 
                 };
-
 
                 var json = JsonSerializer.Serialize(ocrMsg);
                 _rabbitMqService.SendMessage(json);
 
-                _logger.LogInformation("OCR message sent for document {Id}.", id);
-
-                return Accepted();
+                if (summaryExists)
+                {
+                    _logger.LogInformation("Summary already exists for document {Id}. Triggering OCR only (Gemini skipped).", id);
+                    return Accepted(new { message = "OCR triggered (existing summary kept)" });
+                }
+                else
+                {
+                    _logger.LogInformation("No summary found for document {Id}. Triggering OCR + Gemini.", id);
+                    return Accepted(new { message = "OCR + Gemini triggered" });
+                }
             }
             catch (Exception ex)
             {
@@ -305,6 +334,5 @@ namespace Paperless.DAL.Controllers
                 return StatusCode(500, new { message = ex.Message });
             }
         }
-
     }
 }

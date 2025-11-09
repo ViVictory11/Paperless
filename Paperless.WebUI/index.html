@@ -342,12 +342,6 @@
                 </div>
                 <div id="queue" class="queue" aria-live="polite"></div>
 
-                <div style="margin-top:16px">
-                    <h2 style="margin-bottom:6px">extras</h2>
-                    <ul class="muted" style="margin:0 0 0 18px;padding:0">
-                        <li>extras for later</li>
-                    </ul>
-                </div>
             </aside>
             <main class="card">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
@@ -362,10 +356,19 @@
     </div>
 
     <div id="ocr-result-box" style="margin: 40px 0 20px 0; padding: 20px; border-radius: 12px; background: #f5f5f5; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-        <h2 style="margin-bottom: 10px; color: #444;">OCR Ergebnis</h2>
+        <h2 style="margin-top: 20px; color: #444;">Summary</h2>
+        <pre id="summary-result-text" style="white-space: pre-wrap; font-family: monospace; color: #333;">
+             No summary available
+            </pre>
+
+        <h2 style="margin-bottom: 10px; color: #444;">OCR Result</h2>
         <pre id="ocr-result-text" style="white-space: pre-wrap; font-family: monospace; color: #333;">
-            Kein OCR Request
-        </pre>
+             No OCR Request
+            </pre>
+
+        <div id="ocr-loading" style="display:none; margin-top:10px; color:#6b21a8; font-weight:600;">
+            OCR is processing…
+        </div>
     </div>
 
 
@@ -386,6 +389,9 @@
 
         const ocrResultBox = document.getElementById('ocr-result-box');
         const ocrResultText = document.getElementById('ocr-result-text');
+        const summaryResultText = document.getElementById('summary-result-text');
+        const ocrLoading = document.getElementById('ocr-loading');
+
 
         function toast(msg) {
             toastEl.textContent = msg;
@@ -453,11 +459,11 @@
                 statusEl.style.background = '#fee2e2';
                 statusEl.style.color = '#991b1b';
                 listEl.innerHTML = `
-                  <div class="empty">
-                    <div style="font-weight:600">Connection error</div>
-                    <div class="muted" style="margin-top:6px">${String(err)}</div>
-                    <div class="muted" style="margin-top:6px">Is the API container running?</div>
-                  </div>`;
+                      <div class="empty">
+                        <div style="font-weight:600">Connection error</div>
+                        <div class="muted" style="margin-top:6px">${String(err)}</div>
+                        <div class="muted" style="margin-top:6px">Is the API container running?</div>
+                      </div>`;
             } finally {
                 listEl.removeAttribute('aria-busy');
             }
@@ -479,29 +485,33 @@
                 card.className = 'doc';
                 card.setAttribute('data-id', doc.id);
                 card.innerHTML = `
-                  <button class="del" aria-label="Delete ${doc.fileName}">
-                    <span aria-hidden="true">✕</span>
-                  </button>
-                  <div class="icon">${extIcon(doc.fileName, doc.contentType)}</div>
-                  <div>
-                    <div style="font-weight:600; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-                      <a class="doc-link" href="#" title="Open document">${doc.fileName || '(unnamed file)'}</a>
-                    </div>
-                    <div class="meta">${fmtBytes(doc.sizeBytes)} • ${doc.contentType || '-'} • ${fmtDate(doc.uploadedAt)}</div>
-                    <div class="row" style="margin-top:8px">
-                      <span class="pill">id: ${String(doc.id).slice(0, 8)}…</span>
-                      <button class="btn-ghost btn" type="button" data-ocr>OCR</button>
-                    </div>
+                      <button class="del" aria-label="Delete ${doc.fileName}">
+                        <span aria-hidden="true">✕</span>
+                      </button>
+                      <div class="icon">${extIcon(doc.fileName, doc.contentType)}</div>
+                      <div>
+                        <div style="font-weight:600; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+                          <a class="doc-link" href="#" title="Open document">${doc.fileName || '(unnamed file)'}</a>
+                        </div>
+                        <div class="meta">${fmtBytes(doc.sizeBytes)} • ${doc.contentType || '-'} • ${fmtDate(doc.uploadedAt)}</div>
+                        <div class="row" style="margin-top:8px">
+                          <span class="pill">id: ${String(doc.id).slice(0, 8)}…</span>
+                          <button class="btn-ghost btn" type="button" data-ocr>OCR</button>
+                        </div>
 
-                  </div>
-                `;
+                      </div>
+                    `;
 
                 //----------------------------------------------------------------------------------OCR---------------------------------------------------------------------------
                 const ocrBtn = card.querySelector('[data-ocr]');
                 const delBtn = card.querySelector('.del');
                 listEl.appendChild(card);
+                ocrBtn.disabled = false;
+                delBtn.disabled = false;
 
-                ocrBtn.addEventListener('click', async () => {ocrBtn.disabled = true; toast(`Running OCR for ${doc.fileName}`);
+
+                ocrBtn.addEventListener('click', async () => {
+                    ocrBtn.disabled = true; toast(`Running OCR for ${doc.fileName}`);
                     ocrResultText.textContent = 'OCR loading...';
 
                     try {
@@ -519,6 +529,7 @@
                         ocrResultText.textContent = 'OCR failed.';
                     } finally {
                         ocrBtn.disabled = false;
+                        delBtn.disabled = false;
                     }
                 });
                 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -527,8 +538,8 @@
                     try {
                         await apiDeleteDocument(doc.id);
                         toast(`Deleted ${doc.fileName}`);
-                        card.remove();         
-                        updateCount();   
+                        card.remove();
+                        updateCount();
                         resetOcrResult();
                     } catch (err) {
                         console.error(err);
@@ -575,15 +586,15 @@
                 row.className = 'q-item';
                 row.setAttribute('data-id', item.id);
                 row.innerHTML = `
-                  <div>
-                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
-                      <strong>${item.file.name}</strong>
-                      <span class="pill">${fmtBytes(item.file.size)}</span>
-                      <span class="pill">${item.file.type || 'unknown'}</span>
-                    </div>
-                  </div>
-                  <button class="btn-ghost btn" type="button" data-remove>Remove</button>
-                `;
+                      <div>
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                          <strong>${item.file.name}</strong>
+                          <span class="pill">${fmtBytes(item.file.size)}</span>
+                          <span class="pill">${item.file.type || 'unknown'}</span>
+                        </div>
+                      </div>
+                      <button class="btn-ghost btn" type="button" data-remove>Remove</button>
+                    `;
                 row.querySelector('[data-remove]').addEventListener('click', () => {
                     const idx = queue.findIndex(q => q.id === item.id);
                     if (idx >= 0) { queue.splice(idx, 1); renderQueue(); fileInput.value = ''; }
@@ -643,9 +654,14 @@
 
         //-------------------------------------------------------------------------------------------OCR----------------------------------------------------------------------------
         async function pollOcrResult(docId, fileName) {
-            ocrResultText.textContent = "OCR läuft, bitte warten…";
-            const pollIntervalMs = 2000; 
-            const maxDurationMs = 5 * 60 * 1000; //Wir pollen 5 Minuten lang (weil OCR manchmal lang dauert)
+            ocrLoading.style.display = "block";
+            ocrResultText.textContent = "OCR is running, please wait…";
+            summaryResultText.textContent = "Preparing summary…";
+            toast("OCR & Gemini are now running...");
+
+
+            const pollIntervalMs = 2000;
+            const maxDurationMs = 5 * 60 * 1000;
             const startTime = Date.now();
 
             while (Date.now() - startTime < maxDurationMs) {
@@ -654,35 +670,48 @@
 
                     if (res.status === 200) {
                         const data = await res.json();
-                        if (data && data.ocrText && data.ocrText.length > 0) {
-                            showGlobalOcrResult(data.ocrText, fileName);
-                            return;
-                        }
+
+                        const ocrText = data.ocrText || "(no OCR text)";
+                        const summary = data.summary || "(no summary available)";
+
+                        ocrResultText.textContent = ocrText;
+                        summaryResultText.textContent = summary;
+
+                        ocrLoading.style.display = "none";
+                        toast(`OCR & Summary done for file ${fileName}`);
+                        return;
                     } else if (res.status === 202) {
-                        console.log(`OCR läuft noch für ${fileName}...`);
+                        console.log(`OCR still runnning for file ${fileName}...`);
                     } else if (res.status === 500) {
                         const errText = await res.text();
-                        ocrResultText.textContent = `Fehler beim OCR: ${errText}`;
+                        ocrResultText.textContent = `Error with OCR: ${errText}`;
+                        ocrLoading.style.display = "none";
                         return;
                     } else {
-                        console.warn(`Unerwarteter Status: ${res.status}`);
+                        console.warn(`Unexpected status: ${res.status}`);
                     }
 
                 } catch (err) {
-                    console.error("Polling-Fehler:", err);
-                    ocrResultText.textContent = `Verbindungsfehler beim OCR (${err.message})`;
+                    console.error("Polling-Error:", err);
+                    ocrResultText.textContent = `Connection Error with OCR (${err.message})`;
+                    ocrLoading.style.display = "none";
                     return;
                 }
 
-                await new Promise(r => setTimeout(r, pollIntervalMs)); 
+                await new Promise(r => setTimeout(r, pollIntervalMs));
             }
 
-            ocrResultText.textContent = `Kein OCR-Ergebnis für ${fileName} erhalten (Timeout nach 5 Minuten).`;
+            ocrResultText.textContent = `No OCR-Result for file ${fileName} (Timeout after 5 minutes).`;
+            summaryResultText.textContent = "(No Summary)";
+            ocrLoading.style.display = "none";
             toast(`OCR timeout for ${fileName}`);
         }
+
         //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
         function resetOcrResult() {
-            ocrResultText.textContent = 'Kein OCR Request';
+            ocrResultText.textContent = 'No OCR Request';
+            summaryResultText.textContent = 'No summary available';
+            ocrLoading.style.display = "none";
         }
 
 

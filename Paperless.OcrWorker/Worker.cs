@@ -13,18 +13,20 @@ namespace Paperless.OcrWorker
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
-        //private readonly IDocumentStorage _storage;
         private readonly OCRService _ocrService;
+
+        private readonly GeminiService _geminiService;
+
         private IConnection? _connection;
         private IModel? _channel;
         private string _requestQueue = "document_queue";
         private string _resultQueue = "result_queue";
 
-        public Worker(OCRService ocrService, ILogger<Worker> logger, IDocumentStorage storage)
+        public Worker(OCRService ocrService, GeminiService geminiService, ILogger<Worker> logger)
         {
             _ocrService = ocrService;
+            _geminiService = geminiService;
             _logger = logger;
-            //_storage = storage;
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)
@@ -84,22 +86,27 @@ namespace Paperless.OcrWorker
 
                     _logger.LogInformation("Processing OCR job for DocumentId: {Id}", message.DocumentId);
 
-                    /*var tmpFile = Path.Combine(Path.GetTempPath(), $"{message.DocumentId}.pdf");
-                    await using (var stream = await _storage.DownloadAsync(message.ObjectName))
-                    await using (var fileStream = File.Create(tmpFile))
+                    var ocrText = await _ocrService.RunOcrAsync(message.ObjectName);
+                    message.OcrText = ocrText;
+                    _logger.LogInformation($"OCR extracted {ocrText.Length} chars for {message.ObjectName}");
+
+                    if (message.IsSummaryAllowed)
                     {
-                        await stream.CopyToAsync(fileStream, stoppingToken);
+                        _logger.LogInformation("Starting Gemini summarization...");
+                        var summary = await _geminiService.SummarizeAsync(ocrText);
+                        message.Summary = summary;
+                        _logger.LogInformation("Gemini summary created with length {Length}", summary?.Length ?? 0);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Skipping Gemini summarization (summary already exists in DB)");
+                        message.Summary = null;
                     }
 
-                    _logger.LogInformation("Downloaded document {Id} to {Path}", message.DocumentId, tmpFile);*/
-
-                    var ocrText = await _ocrService.RunOcrAsync(message.ObjectName);
-                    _logger.LogInformation($"OCR extracted {ocrText.Length} chars for {message.ObjectName}");
-                    message.OcrText = ocrText;
 
                     var resultJson = JsonSerializer.Serialize(message);
                     var body = Encoding.UTF8.GetBytes(resultJson);
-                    _logger.LogInformation("Sending OCR JSON: " + resultJson);
+                    _logger.LogInformation("Sending OCR + Summary JSON: " + resultJson);
 
                     _channel.BasicPublish(
                         exchange: "",
@@ -108,8 +115,7 @@ namespace Paperless.OcrWorker
                         body: body
                     );
 
-
-                    _logger.LogInformation("Sent OCR result for DocumentId: {Id}", message.DocumentId);
+                    _logger.LogInformation("Sent OCR + Summary result for DocumentId: {Id}", message.DocumentId);
                 }
                 catch (JsonException ex)
                 {

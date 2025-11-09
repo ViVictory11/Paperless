@@ -6,4 +6,6 @@ public interface IDocumentRepository
     Task<List<DocumentEntity>> GetAllAsync(CancellationToken ct = default);
     Task<DocumentEntity> AddAsync(DocumentEntity entity, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);
+    Task SaveSummaryAsync(Guid documentId, string summary);
+
 }

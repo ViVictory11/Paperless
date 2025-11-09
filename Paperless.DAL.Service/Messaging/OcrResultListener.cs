@@ -1,7 +1,9 @@
 ﻿using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Paperless.Contracts;
+using Paperless.DAL.Service.Repositories;
 using Paperless.DAL.Service.Services;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -11,13 +13,15 @@ namespace Paperless.DAL.Service.Messaging
     public class OcrResultListener : BackgroundService
     {
         private readonly IOcrResult _resultStore;
+        private readonly IServiceScopeFactory _scopeFactory;
         private IConnection? _connection;
         private IModel? _channel;
         private readonly string _resultQueue = "result_queue";
 
-        public OcrResultListener(IOcrResult resultStore)
+        public OcrResultListener(IOcrResult resultStore, IServiceScopeFactory scopeFactory)
         {
             _resultStore = resultStore;
+            _scopeFactory = scopeFactory;
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)
@@ -27,29 +31,30 @@ namespace Paperless.DAL.Service.Messaging
                 var host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "rabbitmq";
                 var user = Environment.GetEnvironmentVariable("RABBITMQ_USER") ?? "user";
                 var pass = Environment.GetEnvironmentVariable("RABBITMQ_PASS") ?? "pass";
-                
+
                 var factory = new ConnectionFactory
                 {
-                HostName = host,
-                UserName = user,
-                Password = pass};
-                
+                    HostName = host,
+                    UserName = user,
+                    Password = pass
+                };
+
                 _connection = factory.CreateConnection();
                 _channel = _connection.CreateModel();
-                
+
                 _channel.QueueDeclare(queue: _resultQueue, durable: false, exclusive: false, autoDelete: false);
-                
+
                 Console.WriteLine($"Listening to result queue '{_resultQueue}' on host '{host}'");
             }
             catch (RabbitMQ.Client.Exceptions.BrokerUnreachableException ex)
             {
-                Console.WriteLine($"ERROR: RabbitMQ unreachable: {ex.Message}");
+                Console.WriteLine($"RabbitMQ unreachable: {ex.Message}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ERROR:Failed to start OcrResultListener: {ex.Message}");
+                Console.WriteLine($"Failed to start OcrResultListener: {ex.Message}");
             }
-            
+
             return base.StartAsync(cancellationToken);
         }
 
@@ -60,30 +65,49 @@ namespace Paperless.DAL.Service.Messaging
 
             var consumer = new EventingBasicConsumer(_channel);
 
-            consumer.Received += (model, ea) =>
+            consumer.Received += async (model, ea) =>
             {
                 try
                 {
                     var json = Encoding.UTF8.GetString(ea.Body.ToArray());
                     var message = JsonSerializer.Deserialize<OcrMessage>(json);
 
-                    if (message != null && !string.IsNullOrEmpty(message.OcrText))
-                    {
-                        _resultStore.SaveResult(message.DocumentId, message.OcrText);
-                        Console.WriteLine($"Stored result for document {message.DocumentId}");
-                    }
-                    else
+                    if (message == null)
                     {
                         Console.WriteLine("Invalid or empty OCR result received.");
+                        return;
+                    }
+
+                    using var scope = _scopeFactory.CreateScope();
+                    var repo = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
+
+                    if (!string.IsNullOrEmpty(message.OcrText))
+                    {
+                        _resultStore.SaveResult(message.DocumentId, message.OcrText);
+                        Console.WriteLine($"Stored OCR result for document {message.DocumentId}");
+                    }
+
+                    if (!string.IsNullOrEmpty(message.Summary))
+                    {
+                        Console.WriteLine($"Saving Gemini summary for document {message.DocumentId}...");
+                        try
+                        {
+                            await repo.SaveSummaryAsync(Guid.Parse(message.DocumentId), message.Summary);
+                            Console.WriteLine("Summary saved successfully.");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Failed to save summary: {ex.Message}");
+                        }
                     }
                 }
                 catch (JsonException ex)
                 {
-                    Console.WriteLine($"ERROR: Invalid JSON received: {ex.Message}");
+                    Console.WriteLine($"Invalid JSON received: {ex.Message}");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"ERROR: Unexpected error in message consumer: {ex.Message}");
+                    Console.WriteLine($"Unexpected error in message consumer: {ex.Message}");
                 }
             };
 
@@ -107,9 +131,9 @@ namespace Paperless.DAL.Service.Messaging
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ERROR: Failed to dispose OcrResultListener: {ex.Message}");
+                Console.WriteLine($"Failed to dispose OcrResultListener: {ex.Message}");
             }
-            
+
             base.Dispose();
         }
     }

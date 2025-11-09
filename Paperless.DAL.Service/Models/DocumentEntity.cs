@@ -8,5 +8,7 @@
         public string ContentType { get; set; } = default!;
         public long SizeBytes { get; set; }
         public DateTime UploadedAt { get; set; }
+        public string? Summary { get; set; }
+
     }
 }

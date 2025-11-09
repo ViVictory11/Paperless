@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 
 namespace Paperless.Contracts
 {
-    
+
     public record DocumentDto(
         Guid Id,
         string FileName,
         string ContentType,
         long SizeBytes,
-        DateTime UploadedAt
-        );
-
+        DateTime UploadedAt,
+        string? Summary 
+    );
 
 }
