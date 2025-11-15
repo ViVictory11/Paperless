@@ -267,24 +267,43 @@
 
         .toast {
             position: fixed;
-            left: 50%;
-            bottom: 24px;
-            transform: translateX(-50%);
-            background: #111827;
+            top: 24px;
+            right: 24px;
+            min-width: 260px;
+            background: #1f1f29;
             color: white;
-            padding: 10px 14px;
-            border-radius: 999px;
-            font-size: 13px;
+            padding: 14px 20px;
+            border-radius: 14px;
             box-shadow: 0 10px 30px rgba(0,0,0,.25);
             opacity: 0;
             pointer-events: none;
-            transition: opacity .2s ease, transform .2s ease;
+            transform: translateY(-20px);
+            transition: opacity .25s ease, transform .25s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 9999;
         }
 
             .toast.show {
                 opacity: 1;
-                transform: translateX(-50%) translateY(-6px);
+                transform: translateY(0);
             }
+
+        .toast-large {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toast-spinner {
+            width: 18px;
+            height: 18px;
+            border: 3px solid #c8b5ff;
+            border-top-color: #7d3aed;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
 
 
         .empty {
@@ -313,6 +332,59 @@
             color: var(--muted);
             text-align: center
         }
+
+        .del:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            background: #fce7e7 !important;
+            color: #b91c1c80; /* lighter red */
+            pointer-events: none;
+        }
+
+        .ocr-loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            color: #6a1b9a;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 3px solid #d1c4e9;
+            border-top-color: #6a1b9a;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .toast-large {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            border-radius: 14px;
+        }
+
+        .toast-spinner {
+            width: 18px;
+            height: 18px;
+            border: 3px solid #d1c4e9;
+            border-top-color: #6a1b9a;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+
     </style>
 </head>
 <body>
@@ -366,9 +438,6 @@
              No OCR Request
             </pre>
 
-        <div id="ocr-loading" style="display:none; margin-top:10px; color:#6b21a8; font-weight:600;">
-            OCR is processing…
-        </div>
     </div>
 
 
@@ -393,11 +462,29 @@
         const ocrLoading = document.getElementById('ocr-loading');
 
 
-        function toast(msg) {
-            toastEl.textContent = msg;
+        function toast(msg, duration = 2000) {
+            toastEl.innerHTML = `<span>${msg}</span>`;
             toastEl.classList.add('show');
-            setTimeout(() => toastEl.classList.remove('show'), 1800);
+
+            setTimeout(() => {
+                toastEl.classList.remove('show');
+            }, duration);
         }
+
+        function showOcrToast(message) {
+            toastEl.innerHTML = `
+        <div class="toast-large">
+            <div class="toast-spinner"></div>
+            <span>${message}</span>
+        </div>`;
+            toastEl.classList.add('show');
+        }
+
+        function hideOcrToast() {
+            toastEl.classList.remove('show');
+            setTimeout(() => (toastEl.innerHTML = ""), 200);
+        }
+
 
         function showGlobalOcrResult(text, filename) {
             ocrResultText.textContent = text || '(no OCR text)';
@@ -511,7 +598,11 @@
 
 
                 ocrBtn.addEventListener('click', async () => {
-                    ocrBtn.disabled = true; toast(`Running OCR for ${doc.fileName}`);
+                    ocrBtn.disabled = true;
+                    delBtn.disabled = true;
+
+                    showOcrToast(`Starting OCR for ${doc.fileName}…`);
+
                     ocrResultText.textContent = 'OCR loading...';
 
                     try {
@@ -520,16 +611,17 @@
                         if (!res.ok && res.status !== 202)
                             throw new Error(`OCR star failed (${res.status})`);
 
-                        toast(`OCR job started for ${doc.fileName}`);
+                        showOcrToast(`OCR is running for ${doc.fileName}…`);
 
-                        await pollOcrResult(doc.id, doc.fileName);
+                        await pollOcrResult(doc.id, doc.fileName, delBtn);
                     } catch (err) {
                         console.error(err);
+                        hideOcrToast();
                         alert(`OCR failed: ${err.message}`);
                         ocrResultText.textContent = 'OCR failed.';
+                        delBtn.disabled = false;
                     } finally {
                         ocrBtn.disabled = false;
-                        delBtn.disabled = false;
                     }
                 });
                 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -653,11 +745,10 @@
         });
 
         //-------------------------------------------------------------------------------------------OCR----------------------------------------------------------------------------
-        async function pollOcrResult(docId, fileName) {
-            ocrLoading.style.display = "block";
+        async function pollOcrResult(docId, fileName, delBtn) {
+            showOcrToast("Running OCR…");
             ocrResultText.textContent = "OCR is running, please wait…";
             summaryResultText.textContent = "Preparing summary…";
-            toast("OCR & Gemini are now running...");
 
 
             const pollIntervalMs = 2000;
@@ -677,7 +768,8 @@
                         ocrResultText.textContent = ocrText;
                         summaryResultText.textContent = summary;
 
-                        ocrLoading.style.display = "none";
+                        hideOcrToast();
+                        delBtn.disabled = false; 
                         toast(`OCR & Summary done for file ${fileName}`);
                         return;
                     } else if (res.status === 202) {
@@ -685,7 +777,8 @@
                     } else if (res.status === 500) {
                         const errText = await res.text();
                         ocrResultText.textContent = `Error with OCR: ${errText}`;
-                        ocrLoading.style.display = "none";
+                        hideOcrToast();
+                        delBtn.disabled = false; 
                         return;
                     } else {
                         console.warn(`Unexpected status: ${res.status}`);
@@ -694,7 +787,8 @@
                 } catch (err) {
                     console.error("Polling-Error:", err);
                     ocrResultText.textContent = `Connection Error with OCR (${err.message})`;
-                    ocrLoading.style.display = "none";
+                    hideOcrToast();
+                    delBtn.disabled = false; 
                     return;
                 }
 
@@ -703,7 +797,8 @@
 
             ocrResultText.textContent = `No OCR-Result for file ${fileName} (Timeout after 5 minutes).`;
             summaryResultText.textContent = "(No Summary)";
-            ocrLoading.style.display = "none";
+            hideOcrToast();
+            delBtn.disabled = false; 
             toast(`OCR timeout for ${fileName}`);
         }
 
@@ -711,7 +806,7 @@
         function resetOcrResult() {
             ocrResultText.textContent = 'No OCR Request';
             summaryResultText.textContent = 'No summary available';
-            ocrLoading.style.display = "none";
+            hideOcrToast();
         }
 
 

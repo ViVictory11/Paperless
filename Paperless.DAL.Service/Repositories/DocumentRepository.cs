@@ -126,13 +126,40 @@ public class DocumentRepository : IDocumentRepository
 
     public async Task SaveSummaryAsync(Guid documentId, string summary)
     {
-        var doc = await _db.Documents.FindAsync(documentId);
-        if (doc != null)
+        _logger.LogInformation("Attempting to save summary for document {Id}", documentId);
+
+        try
         {
+            var doc = await _db.Documents.FindAsync(documentId);
+
+            if (doc is null)
+            {
+                _logger.LogWarning("Document {Id} not found. Summary save aborted.", documentId);
+                throw new DataNotFoundException($"Document with id {documentId} not found.");
+            }
+
             doc.Summary = summary;
             await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Summary successfully saved for document {Id}", documentId);
+        }
+        catch (DataNotFoundException ex)
+        {
+            _logger.LogWarning("SaveSummary failed: {Message}", ex.Message);
+            throw;
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Failed to save summary for document {Id}.", documentId);
+            throw new DatabaseConnectionException("Failed to save summary to database.", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error in SaveSummaryAsync for document {Id}.", documentId);
+            throw new RepositoryException("Unexpected error in SaveSummaryAsync.", ex);
         }
     }
+
 
 
 }

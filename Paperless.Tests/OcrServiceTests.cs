@@ -15,6 +15,8 @@ using System.Threading.Tasks;
 using Paperless.DAL.Service.Services;
 using Xunit;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.Extensions.Configuration;
+using System.Reflection;
 
 namespace Paperless.Tests
 {
@@ -72,6 +74,8 @@ namespace Paperless.Tests
         private readonly Mock<ILogger<Worker>> _loggerMock = new();
         private readonly Worker _worker;
         private readonly Mock<IModel> _channelMock = new();
+        private readonly GeminiService _geminiService; // new
+
 
         public WorkerEssentialTests()
         {
@@ -81,11 +85,25 @@ namespace Paperless.Tests
 
             _storageMock.Setup(s => s.DownloadAsync(It.IsAny<string>()))
                         .ReturnsAsync(new MemoryStream(Encoding.UTF8.GetBytes("fake content")));
+            var geminiLogger = new Mock<ILogger<GeminiService>>();
 
-            _worker = new Worker(_ocrMock.Object, _loggerMock.Object, _storageMock.Object);
+            var configDict = new Dictionary<string, string?>
+            {
+                ["Gemini:ApiKey"] = "dummy-key"
+            };
 
-            var channelField = typeof(Worker).GetField("_channel",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            IConfiguration config = new ConfigurationBuilder()
+                .AddInMemoryCollection(configDict)
+                .Build();
+
+            var httpClient = new HttpClient();
+            _geminiService = new GeminiService(httpClient, geminiLogger.Object, config);
+
+
+
+            _worker = new Worker(_ocrMock.Object, _geminiService, _loggerMock.Object);
+
+            var channelField = typeof(Worker).GetField("_channel", BindingFlags.NonPublic | BindingFlags.Instance);
             channelField!.SetValue(_worker, _channelMock.Object);
         }
 
