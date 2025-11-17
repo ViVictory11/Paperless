@@ -74,7 +74,7 @@ namespace Paperless.Tests
         private readonly Mock<ILogger<Worker>> _loggerMock = new();
         private readonly Worker _worker;
         private readonly Mock<IModel> _channelMock = new();
-        private readonly GeminiService _geminiService; // new
+        private readonly GeminiService _geminiService;
 
 
         public WorkerEssentialTests()

@@ -45,6 +45,13 @@ namespace Paperless.OcrWorker.Services
                                 }
                             }
                         }
+                    },
+                    generationConfig = new
+                    {
+                        temperature = 0.7,        
+                        topK = 40,               
+                        topP = 0.9,              
+                        maxOutputTokens = 512    
                     }
                 };
 
