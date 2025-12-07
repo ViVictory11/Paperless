@@ -17,6 +17,7 @@ using Xunit;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using System.Reflection;
+using Paperless.OcrWorker.Elasticsearch;
 
 namespace Paperless.Tests
 {
@@ -75,6 +76,7 @@ namespace Paperless.Tests
         private readonly Worker _worker;
         private readonly Mock<IModel> _channelMock = new();
         private readonly GeminiService _geminiService;
+        private readonly Mock<IElasticService> _elasticMock = new();
 
 
         public WorkerEssentialTests()
@@ -99,9 +101,10 @@ namespace Paperless.Tests
             var httpClient = new HttpClient();
             _geminiService = new GeminiService(httpClient, geminiLogger.Object, config);
 
+            _elasticMock.Setup(e => e.IndexDocumentAsync(It.IsAny<DocumentIndexModel>())).ReturnsAsync(true);
 
 
-            _worker = new Worker(_ocrMock.Object, _geminiService, _loggerMock.Object);
+            _worker = new Worker(_ocrMock.Object, _geminiService, _elasticMock.Object, _loggerMock.Object);
 
             var channelField = typeof(Worker).GetField("_channel", BindingFlags.NonPublic | BindingFlags.Instance);
             channelField!.SetValue(_worker, _channelMock.Object);
