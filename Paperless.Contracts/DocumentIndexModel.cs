@@ -11,6 +11,7 @@ namespace Paperless.Contracts
         public string DocumentId { get; set; } = string.Empty;
         public string FileName { get; set; } = string.Empty;
         public string OriginalFileName { get; set; } = string.Empty;
+        public string SearchName { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
         public string? Summary { get; set; }
     }

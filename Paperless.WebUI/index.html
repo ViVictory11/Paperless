@@ -579,8 +579,9 @@
             }
         }
 
-        function renderDocs(data) {
+        async function renderDocs(data) {
             listEl.innerHTML = '';
+
             if (data.length === 0) {
                 countEl.textContent = '0 items';
                 const empty = document.createElement('div');
@@ -589,35 +590,62 @@
                 listEl.appendChild(empty);
                 return;
             }
+
             countEl.textContent = data.length + (data.length === 1 ? ' item' : ' items');
+
             for (const doc of data) {
+
+
+                const realId = doc.id ?? doc.documentId;
+                let size = doc.sizeBytes;
+                let type = doc.contentType;
+                let date = doc.uploadedAt;
+
+                if (!size || !type || !date) {
+                    try {
+                        const metaRes = await fetch(`/api/documents/${realId}`);
+                        if (metaRes.ok) {
+                            const full = await metaRes.json();
+                            size = full.sizeBytes;
+                            type = full.contentType;
+                            date = full.uploadedAt;
+                        }
+                    } catch (err) {
+                        console.warn("Could not load metadata:", err);
+                    }
+                }
+
                 const card = document.createElement('div');
                 card.className = 'doc';
-                card.setAttribute('data-id', doc.id);
+                card.setAttribute('data-id', realId);
+
                 card.innerHTML = `
-                      <button class="del" aria-label="Delete ${doc.fileName}">
+                    <button class="del" aria-label="Delete ${doc.fileName}">
                         <span aria-hidden="true">✕</span>
-                      </button>
-                      <div class="icon">${extIcon(doc.fileName, doc.contentType)}</div>
-                      <div>
+                    </button>
+
+                    <div class="icon">${extIcon(doc.fileName, type)}</div>
+
+                    <div>
                         <div style="font-weight:600; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-                          <a class="doc-link" href="#" title="Open document">${doc.fileName || '(unnamed file)'}</a>
+                            <a class="doc-link" href="#" title="Open document">${doc.fileName || '(unnamed file)'}</a>
                         </div>
-                        <div class="meta">${fmtBytes(doc.sizeBytes)} • ${doc.contentType || '-'} • ${fmtDate(doc.uploadedAt)}</div>
+
+                        <div class="meta">
+                            ${fmtBytes(size)} • ${type || "-"} • ${fmtDate(date)}
+                        </div>
+
                         <div class="row" style="margin-top:8px">
-                          <span class="pill">id: ${String(doc.id).slice(0, 8)}…</span>
-                          <button class="btn-ghost btn" type="button" data-ocr>OCR</button>
+                            <span class="pill">id: ${String(realId).slice(0, 8)}…</span>
+                            <button class="btn-ghost btn" type="button" data-ocr>OCR</button>
                         </div>
+                    </div>
+                `;
 
-                      </div>
-                    `;
-
-                //----------------------------------------------------------------------------------OCR---------------------------------------------------------------------------
                 const ocrBtn = card.querySelector('[data-ocr]');
                 const delBtn = card.querySelector('.del');
+
                 listEl.appendChild(card);
-                ocrBtn.disabled = false;
-                delBtn.disabled = false;
 
 
                 ocrBtn.addEventListener('click', async () => {
@@ -625,18 +653,17 @@
                     delBtn.disabled = true;
 
                     showOcrToast(`Starting OCR for ${doc.fileName}…`);
-
                     ocrResultText.textContent = 'OCR loading...';
 
                     try {
-                        const res = await fetch(`/api/ocr/run/${doc.id}`, { method: 'POST' });
+                        const res = await fetch(`/api/ocr/run/${realId}`, { method: 'POST' });
 
                         if (!res.ok && res.status !== 202)
-                            throw new Error(`OCR star failed (${res.status})`);
+                            throw new Error(`OCR start failed (${res.status})`);
 
                         showOcrToast(`OCR is running for ${doc.fileName}…`);
+                        await pollOcrResult(realId, doc.fileName, delBtn);
 
-                        await pollOcrResult(doc.id, doc.fileName, delBtn);
                     } catch (err) {
                         console.error(err);
                         hideOcrToast();
@@ -647,11 +674,13 @@
                         ocrBtn.disabled = false;
                     }
                 });
-                //-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
                 delBtn.addEventListener('click', async () => {
                     if (!confirm(`Delete document ${doc.fileName}?`)) return;
+
                     try {
-                        await apiDeleteDocument(doc.id);
+                        await apiDeleteDocument(realId);
                         toast(`Deleted ${doc.fileName}`);
                         card.remove();
                         updateCount();
@@ -661,10 +690,9 @@
                         alert(`Failed to delete: ${err.message}`);
                     }
                 });
-
-
             }
         }
+
 
         function updateCount() {
             const items = listEl.querySelectorAll('.doc');

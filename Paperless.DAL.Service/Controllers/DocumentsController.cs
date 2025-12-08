@@ -178,9 +178,10 @@ namespace Paperless.DAL.Controllers
                     var ocrMsg = new OcrMessage
                     {
                         DocumentId = entity.Id.ToString(),
-                        ObjectName = entity.ObjectName,
-                        OriginalFileName = file.FileName,
-                        Language = "deu+eng"
+                        ObjectName = entity.ObjectName,       
+                        OriginalFileName = entity.FileName,   
+                        Language = "deu+eng",
+                        IsSummaryAllowed = true
                     };
 
                     var json = JsonSerializer.Serialize(ocrMsg);
@@ -224,6 +225,7 @@ namespace Paperless.DAL.Controllers
         public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
             _logger.LogInformation("DELETE /api/documents/{Id} called.", id);
+
             try
             {
                 var doc = await _repo.GetAsync(id, ct);
@@ -233,10 +235,13 @@ namespace Paperless.DAL.Controllers
                     return NotFound();
                 }
 
-                await _storage.DeleteAsync(doc.ObjectName); 
-                var success = await _repo.DeleteAsync(id, ct); 
+                await _storage.DeleteAsync(doc.ObjectName);
 
-                _logger.LogInformation("Document {Id} deleted successfully.", id);
+                var success = await _repo.DeleteAsync(id, ct);
+
+                await _elasticService.DeleteDocumentAsync(id.ToString());
+
+                _logger.LogInformation("Document {Id} deleted successfully (DB + MinIO + Elasticsearch).", id);
                 return NoContent();
             }
             catch (RepositoryException ex)
@@ -250,6 +255,7 @@ namespace Paperless.DAL.Controllers
                 return StatusCode(500, new { message = $"Unexpected error: {ex.Message}" });
             }
         }
+
 
 
         //-------------------------------------------------------------------------------------OCR------------------------------------------------------------------------------
@@ -313,8 +319,9 @@ namespace Paperless.DAL.Controllers
                 {
                     DocumentId = doc.Id.ToString(),
                     ObjectName = doc.ObjectName,
+                    OriginalFileName = doc.FileName,   
                     Language = lang,
-                    IsSummaryAllowed = !summaryExists 
+                    IsSummaryAllowed = !summaryExists
                 };
 
                 var json = JsonSerializer.Serialize(ocrMsg);
@@ -344,13 +351,35 @@ namespace Paperless.DAL.Controllers
         public async Task<IActionResult> Search([FromQuery] string q)
         {
             if (string.IsNullOrWhiteSpace(q))
-                return BadRequest("Query string 'q' is missing.");
+                return Ok(new List<object>()); 
 
             try
             {
-                var response = await _elasticService.SearchAsync(q);
+                var esHits = (await _elasticService.SearchAsync(q)).ToList();
 
-                return Ok(response);
+                if (esHits.Count == 0)
+                    return Ok(new List<object>()); 
+
+                var result = new List<object>();
+
+                foreach (var hit in esHits)
+                {
+                    if (!Guid.TryParse(hit.DocumentId, out var guid))
+                        continue;
+
+                    var dbDoc = await _repo.GetAsync(guid);
+
+                    result.Add(new
+                    {
+                        id = hit.DocumentId,
+                        fileName = hit.OriginalFileName,
+                        contentType = dbDoc?.ContentType ?? "-",
+                        sizeBytes = dbDoc?.SizeBytes ?? 0,
+                        uploadedAt = dbDoc?.UploadedAt
+                    });
+                }
+
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -358,6 +387,5 @@ namespace Paperless.DAL.Controllers
                 return StatusCode(500, new { message = "Search failed." });
             }
         }
-
     }
 }

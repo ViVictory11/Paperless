@@ -105,15 +105,25 @@ namespace Paperless.DAL.Service.Messaging
 
                     try
                     {
-                        await _elasticService.IndexDocumentAsync(new DocumentIndexModel
+                        var original = string.IsNullOrWhiteSpace(message.OriginalFileName)
+                            ? message.ObjectName
+                            : message.OriginalFileName;
+
+                        var cleanName = original.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)
+                            ? original[..^4]   
+                            : original;
+
+                        var indexModel = new DocumentIndexModel
                         {
                             DocumentId = message.DocumentId,
-                            FileName = string.IsNullOrWhiteSpace(message.OriginalFileName)? message.ObjectName: message.OriginalFileName,
-                            OriginalFileName = message.OriginalFileName,
+                            FileName = original,
+                            OriginalFileName = original,
+                            SearchName = cleanName,     
                             Content = message.OcrText ?? "",
                             Summary = message.Summary
-                        });
+                        };
 
+                        await _elasticService.IndexDocumentAsync(indexModel);
 
                         Console.WriteLine($"Indexed document {message.DocumentId} into Elasticsearch.");
                     }

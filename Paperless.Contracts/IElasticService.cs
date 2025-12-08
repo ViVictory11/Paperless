@@ -10,6 +10,8 @@ namespace Paperless.Contracts
     {
         Task<bool> IndexDocumentAsync(DocumentIndexModel doc);
         Task<IEnumerable<DocumentIndexModel>> SearchAsync(string query);
+        Task<bool> DeleteDocumentAsync(string id);
+
 
 
     }

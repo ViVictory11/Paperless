@@ -83,6 +83,9 @@ namespace Paperless.OcrWorker
                         return;
                     }
 
+                    _logger.LogWarning("WORKER DEBUG => Received: DocumentId={ID}, OriginalFileName='{OFN}', ObjectName='{OBJ}'",message.DocumentId,message.OriginalFileName,message.ObjectName);
+
+
                     _logger.LogInformation("Processing OCR job for DocumentId: {Id}", message.DocumentId);
 
                     var ocrText = await _ocrService.RunOcrAsync(message.ObjectName);

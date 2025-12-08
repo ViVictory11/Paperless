@@ -38,6 +38,7 @@ namespace Paperless.DAL.Service.Services
                         .Keyword(k => k.DocumentId)
                         .Text(t => t.FileName)
                         .Text(t => t.OriginalFileName)
+                        .Text(t => t.SearchName)
                         .Text(t => t.Content)
                         .Text(t => t.Summary)
                     )
@@ -83,12 +84,14 @@ namespace Paperless.DAL.Service.Services
 
         public async Task<IEnumerable<DocumentIndexModel>> SearchAsync(string query)
         {
+            var normalized = NormalizeQuery(query);
+
             var response = await _client.SearchAsync<DocumentIndexModel>(s => s
                 .Index(IndexName)
                 .Query(q => q
                     .MultiMatch(mm => mm
-                        .Fields(new Field[] { "content", "originalFileName" }) 
-                        .Query(query)
+                        .Fields(new Field[] { "content", "originalFileName", "summary", "searchName" })
+                        .Query(normalized)
                     )
                 )
                 .Collapse(c => c.Field(f => f.DocumentId))
@@ -101,10 +104,40 @@ namespace Paperless.DAL.Service.Services
                 return Enumerable.Empty<DocumentIndexModel>();
             }
 
-            _logger.LogInformation("Elasticsearch found {Count} unique results for query '{Query}'",
-                response.Documents.Count, query);
-
             return response.Documents;
+        }
+
+
+        public async Task<bool> DeleteDocumentAsync(string id)
+        {
+            var response = await _client.DeleteAsync<Paperless.Contracts.DocumentIndexModel>(id, d => d
+                .Index(IndexName)
+                .Refresh(Refresh.WaitFor)
+            );
+
+            if (!response.IsValidResponse)
+            {
+                _logger.LogError("Failed to delete document {Id} from Elasticsearch: {Error}", id, response.DebugInformation);
+                return false;
+            }
+
+            _logger.LogInformation("Deleted document {Id} from Elasticsearch.", id);
+            return true;
+        }
+
+
+
+        private static string NormalizeQuery(string q)
+        {
+            if (string.IsNullOrWhiteSpace(q))
+                return string.Empty;
+
+            q = q.Trim();
+
+            if (q.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                q = q[..^4];
+
+            return q;
         }
 
     }
