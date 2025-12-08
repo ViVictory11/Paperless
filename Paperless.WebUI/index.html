@@ -384,6 +384,41 @@
             animation: spin 0.7s linear infinite;
         }
 
+        main.card {
+            max-height: 78vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #docs {
+            overflow-y: auto;
+            max-height: 100%;
+            padding-right: 6px;
+        }
+
+        #docs::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #docs::-webkit-scrollbar-track {
+            background: #f7f4ff;
+            border-radius: 10px;
+        }
+
+        #docs::-webkit-scrollbar-thumb {
+            background: #c5b7ff;
+            border-radius: 10px;
+        }
+
+        #docs::-webkit-scrollbar-thumb:hover {
+            background: #a78bfa;
+        }
+
+        #docs {
+            scrollbar-width: thin;
+            scrollbar-color: #c5b7ff #f7f4ff;
+        }
+
 
     </style>
 </head>
