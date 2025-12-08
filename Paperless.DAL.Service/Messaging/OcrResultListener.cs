@@ -14,14 +14,16 @@ namespace Paperless.DAL.Service.Messaging
     {
         private readonly IOcrResult _resultStore;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly IElasticService _elasticService;
         private IConnection? _connection;
         private IModel? _channel;
         private readonly string _resultQueue = "result_queue";
 
-        public OcrResultListener(IOcrResult resultStore, IServiceScopeFactory scopeFactory)
+        public OcrResultListener(IOcrResult resultStore, IServiceScopeFactory scopeFactory, IElasticService elasticService)
         {
             _resultStore = resultStore;
             _scopeFactory = scopeFactory;
+            _elasticService = elasticService;
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)
@@ -99,6 +101,25 @@ namespace Paperless.DAL.Service.Messaging
                         {
                             Console.WriteLine($"Failed to save summary: {ex.Message}");
                         }
+                    }
+
+                    try
+                    {
+                        await _elasticService.IndexDocumentAsync(new DocumentIndexModel
+                        {
+                            DocumentId = message.DocumentId,
+                            FileName = string.IsNullOrWhiteSpace(message.OriginalFileName)? message.ObjectName: message.OriginalFileName,
+                            OriginalFileName = message.OriginalFileName,
+                            Content = message.OcrText ?? "",
+                            Summary = message.Summary
+                        });
+
+
+                        Console.WriteLine($"Indexed document {message.DocumentId} into Elasticsearch.");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to index document in Elasticsearch: {ex.Message}");
                     }
                 }
                 catch (JsonException ex)

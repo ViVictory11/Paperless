@@ -424,13 +424,36 @@
 </head>
 <body>
     <div class="wrap">
-        <header>
+        <header style="gap: 16px; display: flex; align-items: center; justify-content: space-between;">
             <div class="brand">
                 <div class="logo" aria-hidden="true"></div>
                 <div>Paperless</div>
             </div>
-            <div id="status" class="chip">Checking API…</div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="position: relative;">
+                                <input id="searchInput" type="text" placeholder="Search…" style="
+                      padding: 8px 28px 8px 10px;
+                      border: 1px solid #ddd;
+                      border-radius: 8px;
+                      font-size: 14px;" />
+                   <button id="clearSearchBtn" style="
+                      position: absolute;
+                      right: 6px;
+                      top: 50%;
+                      transform: translateY(-50%);
+                      background: none;
+                      border: none;
+                      font-size: 16px;
+                      color: #aaa;
+                      cursor: pointer;
+                  " aria-label="Clear search">
+                                    ✕
+                    </button>
+                </div>
+                <div id="status" class="chip">Checking API…</div>
+            </div>
         </header>
+
 
         <div class="grid">
             <aside class="card">
@@ -844,6 +867,38 @@
             hideOcrToast();
         }
 
+
+
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+        searchInput.addEventListener('input', async () => {
+            const query = searchInput.value.trim();
+
+            if (query.length === 0) {
+                await load();
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+
+                if (Array.isArray(data)) {
+                    renderDocs(data);
+                } else {
+                    renderDocs([]);
+                }
+            } catch (err) {
+                console.error("Search error:", err);
+                renderDocs([]);
+            }
+        });
+
+        clearSearchBtn.addEventListener('click', async () => {
+            searchInput.value = '';
+            await load();
+        });
 
 
         load();

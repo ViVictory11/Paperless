@@ -10,6 +10,7 @@ namespace Paperless.Contracts
     {
         public string DocumentId { get; set; } = string.Empty;
         public string ObjectName { get; set; } = string.Empty;
+        public string OriginalFileName { get; set; } = "";
         public string? OcrText { get; set; }
         public string Language { get; set; } = "deu+eng";
         public bool IsSummaryAllowed { get; set; } = true;
