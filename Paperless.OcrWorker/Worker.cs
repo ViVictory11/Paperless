@@ -7,7 +7,6 @@ using System.Text;
 using System.Text.Json;
 using Paperless.OcrWorker.FileStorage;
 using Paperless.OcrWorker.Services;
-using Paperless.OcrWorker.Elasticsearch;
 
 namespace Paperless.OcrWorker
 {
@@ -15,9 +14,7 @@ namespace Paperless.OcrWorker
     {
         private readonly ILogger<Worker> _logger;
         private readonly OCRService _ocrService;
-
         private readonly GeminiService _geminiService;
-        private readonly IElasticService _elasticService;
 
 
         private IConnection? _connection;
@@ -25,11 +22,10 @@ namespace Paperless.OcrWorker
         private string _requestQueue = "document_queue";
         private string _resultQueue = "result_queue";
 
-        public Worker(OCRService ocrService, GeminiService geminiService, IElasticService elasticService, ILogger<Worker> logger)
+        public Worker(OCRService ocrService, GeminiService geminiService, ILogger<Worker> logger)
         {
             _ocrService = ocrService;
             _geminiService = geminiService;
-            _elasticService = elasticService;
             _logger = logger;
         }
         public override Task StartAsync(CancellationToken cancellationToken)
@@ -92,14 +88,6 @@ namespace Paperless.OcrWorker
                     var ocrText = await _ocrService.RunOcrAsync(message.ObjectName);
                     message.OcrText = ocrText;
                     _logger.LogInformation($"OCR extracted {ocrText.Length} chars for {message.ObjectName}");
-                    await _elasticService.IndexDocumentAsync(new DocumentIndexModel
-                    {
-                        DocumentId = message.DocumentId,
-                        FileName = message.ObjectName,
-                        Content = ocrText,
-                        Summary = message.Summary
-                    });
-                    _logger.LogInformation("Indexed document {Id} into Elasticsearch", message.DocumentId);
 
                     if (message.IsSummaryAllowed)
                     {

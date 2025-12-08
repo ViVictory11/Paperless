@@ -17,7 +17,7 @@ using Xunit;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using System.Reflection;
-using Paperless.OcrWorker.Elasticsearch;
+//using Paperless.OcrWorker.Elasticsearch;
 
 namespace Paperless.Tests
 {
@@ -104,7 +104,7 @@ namespace Paperless.Tests
             _elasticMock.Setup(e => e.IndexDocumentAsync(It.IsAny<DocumentIndexModel>())).ReturnsAsync(true);
 
 
-            _worker = new Worker(_ocrMock.Object, _geminiService, _elasticMock.Object, _loggerMock.Object);
+            _worker = new Worker(_ocrMock.Object, _geminiService, _loggerMock.Object);
 
             var channelField = typeof(Worker).GetField("_channel", BindingFlags.NonPublic | BindingFlags.Instance);
             channelField!.SetValue(_worker, _channelMock.Object);

@@ -22,15 +22,17 @@ namespace Paperless.DAL.Controllers
         private readonly IRabbitMqService _rabbitMqService;
         private readonly ILogger<DocumentsController> _logger;
         private readonly IDocumentStorage _storage;
+        private readonly IElasticService _elasticService;
 
 
-        public DocumentsController(IDocumentRepository repo, IMapper mapper, IRabbitMqService rabbitMqService, ILogger<DocumentsController> logger, IDocumentStorage storage)
+        public DocumentsController(IDocumentRepository repo, IMapper mapper, IRabbitMqService rabbitMqService, ILogger<DocumentsController> logger, IDocumentStorage storage, IElasticService elasticService)
         {
             _repo = repo;
             _mapper = mapper;
             _rabbitMqService = rabbitMqService;
             _logger = logger;
             _storage = storage;
+            _elasticService = elasticService;
         }
 
 
@@ -177,6 +179,7 @@ namespace Paperless.DAL.Controllers
                     {
                         DocumentId = entity.Id.ToString(),
                         ObjectName = entity.ObjectName,
+                        OriginalFileName = file.FileName,
                         Language = "deu+eng"
                     };
 
@@ -334,5 +337,27 @@ namespace Paperless.DAL.Controllers
                 return StatusCode(500, new { message = ex.Message });
             }
         }
+
+
+
+        [HttpGet("/api/search")]
+        public async Task<IActionResult> Search([FromQuery] string q)
+        {
+            if (string.IsNullOrWhiteSpace(q))
+                return BadRequest("Query string 'q' is missing.");
+
+            try
+            {
+                var response = await _elasticService.SearchAsync(q);
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while searching documents in ElasticSearch.");
+                return StatusCode(500, new { message = "Search failed." });
+            }
+        }
+
     }
 }

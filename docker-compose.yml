@@ -20,7 +20,10 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-
+      elasticsearch:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
   webui:
     build:
@@ -28,7 +31,8 @@ services:
     ports:
        - "80:80"                   
     depends_on:
-       - api
+       api:
+         condition: service_started
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.16.0
@@ -39,9 +43,13 @@ services:
       - xpack.security.enabled=false
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
-
     volumes:
-    - elasticsearch-data:/usr/share/elasticsearch/data
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.16.0
@@ -49,10 +57,10 @@ services:
     ports:
       - "5601:5601"
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
     environment:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
-
 
   postgres:
     image: postgres:16
@@ -68,7 +76,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres -d paperless"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   rabbitmq:
     image: rabbitmq:4.1-management
@@ -79,15 +87,14 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: user
       RABBITMQ_DEFAULT_PASS: pass
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 5s
       retries: 10
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
     restart: unless-stopped
-
 
   ocr-worker:
     build:
@@ -95,6 +102,10 @@ services:
       dockerfile: Paperless.OcrWorker/Dockerfile
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      elasticsearch:
         condition: service_healthy
     environment:
       RABBITMQ_HOST: rabbitmq
@@ -121,6 +132,11 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 volumes:
   dbdata:

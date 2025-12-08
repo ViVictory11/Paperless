@@ -8,9 +8,17 @@ public class DocumentProfile : Profile
     public DocumentProfile()
     {
         CreateMap<DocumentEntity, DocumentDto>();
-        CreateMap<CreateDocumentDto, DocumentEntity>()
-                .ForMember(d => d.Id, opt => opt.Ignore())
-                .ForMember(d => d.UploadedAt, opt => opt.Ignore());
+        CreateMap<DocumentEntity, DocumentDto>()
+         .ConstructUsing(src => new DocumentDto(
+             src.Id,
+             src.FileName,     
+             src.ObjectName,   
+             src.ContentType,
+             src.SizeBytes,
+             src.UploadedAt,
+             src.Summary
+         ));
+
 
     }
 }

@@ -9,11 +9,12 @@ namespace Paperless.Contracts
 
     public record DocumentDto(
         Guid Id,
-        string FileName,
+        string FileName,        
+        string ObjectName,     
         string ContentType,
         long SizeBytes,
         DateTime UploadedAt,
-        string? Summary 
-    );
+        string? Summary
+     );
 
 }

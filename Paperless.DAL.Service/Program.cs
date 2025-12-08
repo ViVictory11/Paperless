@@ -13,12 +13,10 @@ using Paperless.DAL.Service.Options;
 using Minio;
 using Minio.DataModel.Args;
 using Minio.Exceptions;
+using Elastic.Clients.Elasticsearch;
+using Paperless.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -32,21 +30,33 @@ var logger = LoggerFactory.Create(config =>
 
 logger.LogInformation("Initializing Paperless.DAL.Service application...");
 
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
-builder.Services.AddAutoMapper(cfg =>
-{
-    cfg.AddProfile<DocumentProfile>();
-});
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<DocumentProfile>());
 
 builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
-
 builder.Services.AddSingleton<IOcrResult, OcrResult>();
 builder.Services.AddHostedService<OcrResultListener>();
 
 builder.Services.AddMinioStorage(builder.Configuration);
+
+builder.Services.AddSingleton<IElasticService>(sp =>
+{
+    var elasticLogger = sp.GetRequiredService<ILogger<ElasticService>>();
+
+    var settings = new ElasticsearchClientSettings(
+        new Uri("http://elasticsearch:9200")  
+    ).DefaultIndex("documents");
+
+    var client = new ElasticsearchClient(settings);
+    return new ElasticService(client, elasticLogger);
+});
 
 var app = builder.Build();
 
@@ -66,11 +76,12 @@ try
 
         logger.LogInformation("Checking if MinIO bucket '{Bucket}' exists...", opt.BucketName);
         bool exists = await client.BucketExistsAsync(
-            new Minio.DataModel.Args.BucketExistsArgs().WithBucket(opt.BucketName));
+            new BucketExistsArgs().WithBucket(opt.BucketName));
+
         if (!exists)
         {
             await client.MakeBucketAsync(
-                new Minio.DataModel.Args.MakeBucketArgs().WithBucket(opt.BucketName));
+                new MakeBucketArgs().WithBucket(opt.BucketName));
             logger.LogInformation("Created new MinIO bucket '{Bucket}'.", opt.BucketName);
         }
         else
@@ -85,7 +96,6 @@ catch (Exception ex)
     throw;
 }
 
-
 if (app.Environment.IsDevelopment())
 {
     logger.LogInformation("Enabling Swagger UI for Development environment.");
@@ -93,10 +103,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-//app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 logger.LogInformation("Starting web host...");
