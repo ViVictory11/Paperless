@@ -55,9 +55,6 @@ namespace Paperless.DAL.Service.Services
 
 
 
-
-
-
         public async Task<bool> IndexDocumentAsync(DocumentIndexModel doc)
         {
             await EnsureIndexExistsAsync();
@@ -89,9 +86,18 @@ namespace Paperless.DAL.Service.Services
             var response = await _client.SearchAsync<DocumentIndexModel>(s => s
                 .Index(IndexName)
                 .Query(q => q
-                    .MultiMatch(mm => mm
-                        .Fields(new Field[] { "content", "originalFileName", "summary", "searchName" })
-                        .Query(normalized)
+                    .Bool(b => b
+                        .Should(
+                            mq => mq.MultiMatch(mm => mm
+                                .Fields(new Field[] { "content", "originalFileName", "summary", "searchName" })
+                                .Query(normalized)
+                            ),
+                            fq => fq.Match(m => m
+                                .Field(f => f.Content)
+                                .Query(normalized)
+                                .Fuzziness(new Fuzziness(2))      
+                            )
+                        )
                     )
                 )
                 .Collapse(c => c.Field(f => f.DocumentId))
