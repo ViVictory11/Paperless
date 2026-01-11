@@ -108,3 +108,6 @@ app.MapControllers();
 
 logger.LogInformation("Starting web host...");
 app.Run();
+
+public partial class Program { }
+
