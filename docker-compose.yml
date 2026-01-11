@@ -1,5 +1,6 @@
 services:
   api:
+    image: ghcr.io/ViVictory11/Paperless-api:latest
     build:
       context: .
       dockerfile: Paperless.DAL.Service/Dockerfile  
@@ -26,6 +27,7 @@ services:
         condition: service_healthy
 
   webui:
+    image: ghcr.io/ViVictory11/Paperless-webui:latest
     build:
        context: ./Paperless.WebUI   
     ports:
@@ -97,6 +99,7 @@ services:
     restart: unless-stopped
 
   ocr-worker:
+    image: ghcr.io/ViVictory11/Paperless-ocr-worker:latest
     build:
       context: .
       dockerfile: Paperless.OcrWorker/Dockerfile
